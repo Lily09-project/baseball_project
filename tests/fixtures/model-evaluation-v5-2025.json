@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "training_version": 5,
+  "engine_contract": 5,
+  "batch_id": "310a2e1936d7edd021af3016ac1d6058cf22042854450ec7578eefc29695c924",
+  "status": "evaluated",
+  "evaluation": "retrospective_fixed_config_already_inspected_not_new_holdout",
+  "target": "observed_single_pa_RE24",
+  "primary_metric": "mse",
+  "seed": 20261025,
+  "bootstrap_reps": 2000,
+  "ci_method": "paired_game_cluster_bootstrap",
+  "development_months": [
+    "2025-05",
+    "2025-08"
+  ],
+  "time_check_months": [
+    "2025-09",
+    "2025-10"
+  ],
+  "selected_key": "s1_w0.5",
+  "current_key": "s1_w0.5",
+  "adopted_key": "s1_w0.5",
+  "selected_config": {
+    "hierarchy_scale": 1,
+    "gbt_weight": 0.5,
+    "tree_variant": "current"
+  },
+  "adopted_config": {
+    "hierarchy_scale": 1,
+    "gbt_weight": 0.5,
+    "tree_variant": "current"
+  },
+  "adoption_rule": "unchanged predeclared 0.5 ensemble; no tuning or selection from this audit",
+  "development_selected_vs_current_ci": [
+    0,
+    0
+  ],
+  "sampling_sensitivity": [],
+  "candidates": [
+    {
+      "key": "s1_w0",
+      "hierarchy_scale": 1,
+      "gbt_weight": 0,
+      "tree_variant": "current",
+      "development": {
+        "n": 16981,
+        "games": 222,
+        "mse": 0.24993188537278518,
+        "mae": 0.3773814650199064,
+        "baseline_mse": 0.2508763335616706,
+        "mse_reduction": 0.0009444481888853329,
+        "mse_reduction_ci": [
+          0.000358027608629655,
+          0.0015427028557061144
+        ]
+      },
+      "time_check": {
+        "n": 5396,
+        "games": 72,
+        "mse": 0.22589158506210452,
+        "mae": 0.3609486160438944,
+        "baseline_mse": 0.22599778547890276,
+        "mse_reduction": 0.00010620041679823019,
+        "mse_reduction_ci": [
+          -0.0008321783892913316,
+          0.001057140204769809
+        ]
+      }
+    },
+    {
+      "key": "s1_w1",
+      "hierarchy_scale": 1,
+      "gbt_weight": 1,
+      "tree_variant": "current",
+      "development": {
+        "n": 16981,
+        "games": 222,
+        "mse": 0.25032480544106894,
+        "mae": 0.37749256019930616,
+        "baseline_mse": 0.2508763335616706,
+        "mse_reduction": 0.0005515281206016942,
+        "mse_reduction_ci": [
+          2.490641123368174e-05,
+          0.0010877667290430213
+        ]
+      },
+      "time_check": {
+        "n": 5396,
+        "games": 72,
+        "mse": 0.22561809238272904,
+        "mae": 0.3601994721657391,
+        "baseline_mse": 0.22599778547890276,
+        "mse_reduction": 0.0003796930961737493,
+        "mse_reduction_ci": [
+          -0.0003730209590861384,
+          0.0011225028941613273
+        ]
+      }
+    },
+    {
+      "key": "s1_w0.5",
+      "hierarchy_scale": 1,
+      "gbt_weight": 0.5,
+      "tree_variant": "current",
+      "development": {
+        "n": 16981,
+        "games": 222,
+        "mse": 0.24991221405954003,
+        "mae": 0.3774180904853919,
+        "baseline_mse": 0.2508763335616706,
+        "mse_reduction": 0.0009641195021305334,
+        "mse_reduction_ci": [
+          0.0004730723117573748,
+          0.001488924097493353
+        ]
+      },
+      "time_check": {
+        "n": 5396,
+        "games": 72,
+        "mse": 0.22557467664798278,
+        "mae": 0.36055371018480337,
+        "baseline_mse": 0.22599778547890276,
+        "mse_reduction": 0.0004231088309199804,
+        "mse_reduction_ci": [
+          -0.00035410021747372733,
+          0.001235824349944789
+        ]
+      }
+    }
+  ],
+  "monthly": [
+    {
+      "month": "2025-05",
+      "period": "development",
+      "current": {
+        "n": 4367,
+        "games": 57,
+        "mse": 0.26037375468024826,
+        "mae": 0.3844558512587123,
+        "baseline_mse": 0.26173834589071254,
+        "mse_reduction": 0.0013645912104642464,
+        "mse_reduction_ci": [
+          0.0003812611121621918,
+          0.0023916771637582245
+        ]
+      },
+      "selected": {
+        "n": 4367,
+        "games": 57,
+        "mse": 0.26037375468024826,
+        "mae": 0.3844558512587123,
+        "baseline_mse": 0.26173834589071254,
+        "mse_reduction": 0.0013645912104642464,
+        "mse_reduction_ci": [
+          0.0003812611121621918,
+          0.0023916771637582245
+        ]
+      }
+    },
+    {
+      "month": "2025-06",
+      "period": "development",
+      "current": {
+        "n": 4407,
+        "games": 57,
+        "mse": 0.24710580685087558,
+        "mae": 0.37711455424997503,
+        "baseline_mse": 0.24775383064355533,
+        "mse_reduction": 0.0006480237926797901,
+        "mse_reduction_ci": [
+          -0.00038857449552400744,
+          0.0017178921804248415
+        ]
+      },
+      "selected": {
+        "n": 4407,
+        "games": 57,
+        "mse": 0.24710580685087558,
+        "mae": 0.37711455424997503,
+        "baseline_mse": 0.24775383064355533,
+        "mse_reduction": 0.0006480237926797901,
+        "mse_reduction_ci": [
+          -0.00038857449552400744,
+          0.0017178921804248415
+        ]
+      }
+    },
+    {
+      "month": "2025-07",
+      "period": "development",
+      "current": {
+        "n": 3192,
+        "games": 41,
+        "mse": 0.2660666107820747,
+        "mae": 0.3816147679859896,
+        "baseline_mse": 0.2675775430989107,
+        "mse_reduction": 0.0015109323168359568,
+        "mse_reduction_ci": [
+          0.0003335285533177822,
+          0.0026996097829377116
+        ]
+      },
+      "selected": {
+        "n": 3192,
+        "games": 41,
+        "mse": 0.2660666107820747,
+        "mae": 0.3816147679859896,
+        "baseline_mse": 0.2675775430989107,
+        "mse_reduction": 0.0015109323168359568,
+        "mse_reduction_ci": [
+          0.0003335285533177822,
+          0.0026996097829377116
+        ]
+      }
+    },
+    {
+      "month": "2025-08",
+      "period": "development",
+      "current": {
+        "n": 5015,
+        "games": 67,
+        "mse": 0.232986482123273,
+        "mae": 0.3688852865592671,
+        "baseline_mse": 0.2335316080734028,
+        "mse_reduction": 0.0005451259501298133,
+        "mse_reduction_ci": [
+          -0.0004175364946376739,
+          0.0015488467501058034
+        ]
+      },
+      "selected": {
+        "n": 5015,
+        "games": 67,
+        "mse": 0.232986482123273,
+        "mae": 0.3688852865592671,
+        "baseline_mse": 0.2335316080734028,
+        "mse_reduction": 0.0005451259501298133,
+        "mse_reduction_ci": [
+          -0.0004175364946376739,
+          0.0015488467501058034
+        ]
+      }
+    },
+    {
+      "month": "2025-09",
+      "period": "time_check",
+      "current": {
+        "n": 4435,
+        "games": 59,
+        "mse": 0.22788828400590377,
+        "mae": 0.36296477169140806,
+        "baseline_mse": 0.22854755370052154,
+        "mse_reduction": 0.0006592696946177423,
+        "mse_reduction_ci": [
+          -0.00021482480167537503,
+          0.0015662479549541162
+        ]
+      },
+      "selected": {
+        "n": 4435,
+        "games": 59,
+        "mse": 0.22788828400590377,
+        "mae": 0.36296477169140806,
+        "baseline_mse": 0.22854755370052154,
+        "mse_reduction": 0.0006592696946177423,
+        "mse_reduction_ci": [
+          -0.00021482480167537503,
+          0.0015662479549541162
+        ]
+      }
+    },
+    {
+      "month": "2025-10",
+      "period": "time_check",
+      "current": {
+        "n": 961,
+        "games": 13,
+        "mse": 0.21489741480367516,
+        "mae": 0.34942669896545714,
+        "baseline_mse": 0.2142306449348037,
+        "mse_reduction": -0.0006667698688714605,
+        "mse_reduction_ci": [
+          -0.0023723173873573663,
+          0.0007216276081075921
+        ]
+      },
+      "selected": {
+        "n": 961,
+        "games": 13,
+        "mse": 0.21489741480367516,
+        "mae": 0.34942669896545714,
+        "baseline_mse": 0.2142306449348037,
+        "mse_reduction": -0.0006667698688714605,
+        "mse_reduction_ci": [
+          -0.0023723173873573663,
+          0.0007216276081075921
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "predictions_sha256": "6b9d0af37c53ac317f3a7f1513099238edaebe28f0e7422c00882f8d65f6ad0f",
+    "context_sha256": "74060b75e4be6de2bf2d90cd7c0ab7a04593bd09d6b2946f719b76ad558b855a",
+    "source_id": "2b99976ea35e6edc1ce96221e96bd67b28ed9489535fc2d84c6d2c989771f86d"
+  }
+}

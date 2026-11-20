@@ -1,0 +1,406 @@
+"""本機網頁伺服器：python server.py 後開啟 http://127.0.0.1:8000
+
+只用 Python 標準函式庫 + 專案既有的 pandas/numpy/scipy。
+"""
+from hashlib import sha256
+import json
+import math
+import os
+import sys
+import threading
+import traceback
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(ROOT, "src"))
+
+import pandas as pd  # noqa: E402
+
+from engine import (_hands, bat_hand, custom_situation, evaluate_bullpen, evaluate_pinch_hit,  # noqa: E402
+                    matchup_detail, situation)
+from load import CELLS, load  # noqa: E402
+from batch_contract import metadata as batch_metadata, ensure_available
+import mlmodel  # noqa: E402
+from model import fit  # noqa: E402
+from roster import POS_ZH, can_play, pitcher_names, positions_of  # noqa: E402
+from identity import labels, display_name
+from player_input import resolve_player
+from historical_actors import at_start, decorate
+from runtime_config import settings
+
+PORT = int(os.environ.get("PORT", 8000))
+WEB = os.environ.get('BASEBALL_WEB_ROOT',os.path.join(ROOT,"docs"))
+_lock = threading.Lock()
+_models = {}
+FULL = settings().cutoff  # exclusive data boundary
+
+
+def model_for(date_str):
+    with _lock:
+        if date_str not in _models:
+            _models[date_str] = fit(date_str, season=settings().season if date_str == FULL else None)
+        return _models[date_str]
+
+
+def clean(o):
+    if isinstance(o, dict):
+        return {str(k): clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple, set)):
+        return [clean(v) for v in o]
+    if isinstance(o, pd.DataFrame):
+        return clean(o.to_dict("records"))
+    if isinstance(o, pd.Series):
+        return clean(o.to_dict())
+    if isinstance(o, pd.Timestamp):
+        return str(o.date())
+    if hasattr(o, "item"):
+        o = o.item()
+    if isinstance(o, float) and (math.isnan(o) or math.isinf(o)):
+        return None
+    return o
+
+
+# ---------- 名單 ----------
+_rosters = None
+
+
+def rosters():
+    global _rosters
+    if _rosters is not None:
+        return _rosters
+    pa, _, boxes = load()
+    boxes=boxes[boxes.date<pd.Timestamp(FULL)]
+    b25 = boxes[boxes["date"].dt.year == settings().season].sort_values("date")
+    bh, ph = _hands(FULL)
+    out = {}
+    for team, d in b25.groupby("team"):
+        hit = d[d["role"] == "B"]
+        pit = d[d["role"] == "P"]
+        # 球員以最後出現的隊伍為準
+        last_team_b = b25[b25["role"] == "B"].groupby("name")["team"].last()
+        last_team_p = b25[b25["role"] == "P"].groupby("name")["team"].last()
+        true_pitchers = pitcher_names(b25)
+        hitters = []
+        for name, g in hit.groupby("name"):
+            if last_team_b.get(name) != team or name in true_pitchers:
+                continue
+            hitters.append(dict(name=name, display_name=display_name(name,FULL), aliases=sorted(set(boxes.loc[boxes.name==name,'raw_name'])|{display_name(name,FULL)}), hand=bh.get(name, 'U'), pa=int(g['PA'].sum()), games=int(g['game'].nunique()),
+                                positions=positions_of(name,FULL), catcher=bool(can_play(name, "C",FULL))))
+        pitchers = []
+        for name, g in pit.groupby("name"):
+            if last_team_p.get(name) != team or name not in true_pitchers:
+                continue
+            starts = int((g["order"] == 1).sum())
+            pitchers.append(dict(name=name, display_name=display_name(name,FULL), aliases=sorted(set(boxes.loc[boxes.name==name,'raw_name'])|{display_name(name,FULL)}), hand=ph.get(name, 'U'), games=int(len(g)), starts=starts,
+                                 role="先發" if starts >= len(g) / 2 else "後援", np=int(g["NP"].sum())))
+        out[team] = dict(hitters=sorted(hitters, key=lambda x: -x["pa"]),
+                         pitchers=sorted(pitchers, key=lambda x: (x["role"] != "後援", -x["games"])))
+    _rosters = out
+    return out
+
+
+# ---------- 結果組裝 ----------
+def pitch_mix_payload(m, pitcher):
+    res = {}
+    for h in ("R", "L"):
+        mix, n = m.pitch_mix(pitcher, h)
+        res[h] = dict(n=int(n), cells={c: float(mix.get(c, 0)) for c in CELLS})
+    return res
+
+
+def build_result(sit, m, ml=None, actual=None):
+    row = sit["row"]
+    ph_df, slope, _ = evaluate_pinch_hit(sit, model=m, ml=ml)
+    bp_df, nxt = evaluate_bullpen(sit, model=m, ml=ml)
+    r = {k: row[k] for k in ("inning", "half", "outs", "bases", "bat_score", "fld_score", "pitcher", "phand",
+                             "bat_team", "fld_team", "date")}
+    r["pitch_count"] = sit.get("pitch_count")
+    r["starter"] = sit.get("starter", False)
+    r["due"] = sit["due"]
+    r["due_pos"] = sit["positions"].get(sit["due"], "DH")
+    r["due_pos_zh"] = POS_ZH.get(r["due_pos"], r["due_pos"])
+    return clean(dict(
+        situation=r, actual=actual, leverage=slope * 100, league_leverage=m.slope_all * 100,
+        pitch_mix=pitch_mix_payload(m, row["pitcher"]),
+        candidates=ph_df, bullpen=dict(next=nxt, rows=bp_df), model_cutoff=str(m.cutoff.date()),
+        ml_cutoff=str(ml.cutoff) if ml else None, schema_version=2,
+        **batch_metadata(),
+        availability="人工勾選可用名單；請確認當日登錄、健康與已用人選" if not row.get("game") else "依此前 10 天出賽推估，非官方當日登錄名單；守位由既有紀錄推估",
+        fielding_source="截止日以前的完整球季守位紀錄與捕手經驗；不含當季整季守位",
+        method="集成（階層式＋梯度提升樹）" if ml else "階層式",
+        players=labels(str(pd.Timestamp(row['date']).date()),inclusive=True),
+    ))
+
+
+def replay_result(pid, decision="ph"):
+    """Replay separate batting and pitching decisions without using the incoming pitcher as incumbent."""
+    if decision not in ("ph", "pen"):
+        raise ValueError("回放類型須為 ph 或 pen")
+    pa, _, _ = load()
+    found = pa.loc[pa["pa_id"] == pid]
+    if found.empty:
+        raise ValueError("找不到此打席")
+    row = found.iloc[0]
+    date = str(row["date"].date())
+    sit = situation(pid)
+    opening = at_start(row)
+    incumbent = opening['pitcher']
+    previous = pa[(pa["game"] == row["game"]) & (pa["fld_team"] == row["fld_team"])].sort_values(["inning", "seq"])
+    order = previous["pa_id"].tolist().index(pid)
+    if order:
+        prior = previous.iloc[order - 1]
+        incumbent = prior["pitcher"]
+        if decision == "pen":
+            from timing_backtest import incumbent_situation
+            sit = incumbent_situation(sit, dict(inc=incumbent, inc_hand=prior["phand"]))
+    with _lock:
+        ml = mlmodel.for_date(date)
+    actual = dict(batter=opening['batter'], pitcher=opening['pitcher'], is_ph=bool(row["is_ph"]),
+                  final_batter=row['batter'],final_pitcher=row['pitcher'],
+                  mid_pa_actor_change=any(opening[f]!=row[f] for f in ('batter','pitcher')),
+                  result=row["result"], WPA=row["WPA"])
+    result = build_result(sit, model_for(date), ml, actual)
+    result["replay_context"] = dict(decision=decision, incumbent_pitcher=incumbent,
+                                    actual_pitcher=opening['pitcher'],final_pitcher=row['pitcher'],
+                                    pitcher_changed=incumbent != opening['pitcher'])
+    return result
+
+
+def published_replay(pid, date, decision, root=None):
+    """Read a published historical decision when the date's training weight is absent."""
+    root = Path(WEB, 'data', 'replay') if root is None else root
+    catalog = root / 'dates.json'
+    if not catalog.is_file():
+        return None
+    listing = json.loads(catalog.read_bytes())
+    date_entry = next((row for row in listing['days'] if row['date'] == date), None)
+    if date_entry is None:
+        return None
+    month = settings().month_for(date)
+    day = root / f'day-{date}'
+    index = json.loads((day / 'index.json').read_bytes())
+    batch = date_entry['batch_id']
+    if (listing['schema_version'] != 1 or index['schema_version'] != 1
+            or index['date'] != date or index['season'] != settings().season
+            or index['model_cutoff'] != date or index['ml_cutoff'] != month
+            or index['batch_id'] != batch
+            or not index['training_last_date'] < month or not index['calibration_last_date'] < month):
+        raise ValueError('已發布回放的日期或模型批次不一致')
+    filename = index['files'].get(pid)
+    if filename != f'{pid}.json' or Path(filename).name != filename:
+        raise ValueError('已發布回放找不到此打席')
+    data = (day / filename).read_bytes()
+    if sha256(data).hexdigest() != index['sha256'].get(pid):
+        raise ValueError('已發布回放的打席檔未通過雜湊驗證')
+    bundle = json.loads(data)
+    if (bundle['schema_version'] != 1 or bundle['batch_id'] != batch
+            or bundle['date'] != date or bundle['pa_id'] != pid):
+        raise ValueError('已發布回放的打席資料不一致')
+    result = bundle.get(decision) or bundle['ph']
+    if result['batch_id'] != batch or result['model_cutoff'] != date or result['ml_cutoff'] != month:
+        raise ValueError('已發布回放的截止日不一致')
+    candidates = result.get('candidates', [])
+    # Older frozen bundles kept the last catcher in the reserve count.
+    if sum(row.get('角色') == '代打' and '可直接接守捕手' in row.get('守備說明', '') for row in candidates) == 1:
+        for row in candidates:
+            note = row.get('守備說明', '')
+            if note.startswith('需由 ') and '接守捕手' in note and '板凳已無備用捕手' not in note:
+                row['守備說明'] = note + '；之後板凳已無備用捕手'
+    return {**result, 'replay_context': {**result['replay_context'], 'decision': decision}}
+
+
+# ---------- API ----------
+def validate_evaluation(body):
+    if not isinstance(body, dict):
+        raise ValueError('需要情境資料')
+    if body.get('date') not in (None, FULL):
+        raise ValueError('自訂情境使用目前模型日期；歷史情境請用回放')
+    for key, low, high in [('inning', 1, 12), ('outs', 0, 2), ('bases', 0, 7),
+                           ('bat_score', 0, None), ('fld_score', 0, None)]:
+        value = body.get(key)
+        if type(value) is not int or value < low or (high is not None and value > high):
+            raise ValueError(f'{key} 須為有效範圍內的整數')
+    if body.get('starter') is not None and type(body['starter']) is not bool:
+        raise ValueError('starter 須為布林值或 null')
+    pc = body.get('pitch_count')
+    if pc is not None and (type(pc) is not int or not 0 <= pc <= 160):
+        raise ValueError('本場球數須介於 0 至 160')
+    if body.get('half') not in ('away', 'home'):
+        raise ValueError('局別無效')
+    r = rosters()
+    bat, fld = body.get('bat_team'), body.get('fld_team')
+    if not isinstance(bat, str) or not isinstance(fld, str) or bat not in r or fld not in r or bat == fld:
+        raise ValueError('請選不同的有效球隊')
+    # Convert legacy labels only with unique team/role evidence, on a copy.
+    body = dict(body)
+    body.pop('date', None)
+    def resolve(value,team,role):
+        pool=r[team]['hitters' if role=='B' else 'pitchers']
+        if not isinstance(value,str): raise ValueError('球員參數須為文字')
+        if any(p['name']==value for p in pool): return value
+        return resolve_player(value,cutoff=FULL,team=team,role=role)
+    for key, team, role in [('due',bat,'B'),('pitcher',fld,'P')]:
+        body[key] = resolve(body.get(key),team,role)
+    for key, team, role in [('bench',bat,'B'),('pen',fld,'P'),('next_batters',bat,'B')]:
+        if key in body:
+            if not isinstance(body[key],list): raise ValueError(f'{key} 名單無效')
+            body[key] = [resolve(v,team,role) for v in body[key]]
+    if isinstance(body.get('streaks'),dict):
+        migrated = {}
+        for key,value in body['streaks'].items():
+            player = resolve(key,fld,'P')
+            if player in migrated: raise ValueError('連續登板投手重複')
+            migrated[player] = value
+        body['streaks'] = migrated
+    if 'lineup_positions' in body:
+        if not isinstance(body['lineup_positions'],dict): raise ValueError('場上守位資料無效')
+        positions={}
+        for old,pos in body['lineup_positions'].items():
+            player=resolve(old,bat,'B')
+            if player in positions or pos not in POS_ZH: raise ValueError('場上守位資料無效')
+            positions[player]=pos
+        body['lineup_positions']=positions
+    hitters = {h['name'] for h in r[bat]['hitters']}
+    pitchers = {p['name'] for p in r[fld]['pitchers']}
+    if body.get('pitcher') not in pitchers or body.get('due') not in hitters:
+        raise ValueError('投打者與所選球隊不一致')
+    if body.get('due_pos') not in POS_ZH:
+        raise ValueError('守位無效')
+    for key, pool in [('bench', hitters), ('pen', pitchers)]:
+        values = body.get(key, [])
+        if not isinstance(values, list) or any(not isinstance(v, str) for v in values) or len(set(values)) != len(values) or not set(values) <= pool:
+            raise ValueError(f'{key} 名單無效')
+    if body['due'] in body.get('bench', []):
+        raise ValueError('現任打者不能同時列入板凳')
+    nxt = body.get('next_batters')
+    if nxt is not None and (not isinstance(nxt, list) or len(nxt) != 3 or any(not isinstance(v, str) for v in nxt) or len(set(nxt)) != 3 or not set(nxt) <= hitters):
+        raise ValueError('接下來三棒須為三位有效且不同的打者')
+    streaks = body.get('streaks')
+    if streaks is not None and (not isinstance(streaks, dict) or
+                                any(k not in pitchers or type(v) is not int or not 0 <= v <= 10 for k, v in streaks.items())):
+        raise ValueError('連續登板天數須為 0–10 的整數，且投手須屬於防守球隊')
+    for key, high in (('fatigue_d2', 0.5), ('fatigue_d3', 0.5), ('recent_weight', 1.0)):
+        v = body.get(key)
+        if v is not None and (type(v) not in (int, float) or not 0 <= v <= high):
+            raise ValueError(f'{key} 須介於 0 至 {high}')
+    return body
+
+
+def api(path, qs, body):
+    ensure_available()
+    if path == "/api/pitch-change":
+        from pitch_change import pitch_change
+        return pitch_change(qs["pitcher"][0], int(qs.get("season", [str(settings().season)])[0]),
+                            qs["cutoff"][0], qs.get("hand", ["ALL"])[0])
+    pa, _, boxes = load()
+    if path == "/api/meta":
+        r = rosters()
+        return dict(teams=sorted(r), cells=CELLS, positions=POS_ZH, players=labels(FULL), runtime=settings().public(), **batch_metadata())
+    if path == "/api/team":
+        return rosters()[qs["team"][0]]
+    if path == "/api/games":
+        team = qs["team"][0]
+        g = pa[(pa["season"] == settings().season) & (pa.date<pd.Timestamp(FULL)) & ((pa["bat_team"] == team) | (pa["fld_team"] == team))]
+        out = []
+        for gid, d in g.groupby("game"):
+            aw = d[d["half"] == "away"]
+            hm = d[d["half"] == "home"]
+            away = aw["bat_team"].iat[0] if len(aw) else hm["fld_team"].iat[0]
+            home = hm["bat_team"].iat[0] if len(hm) else aw["fld_team"].iat[0]
+            ascore = int((aw["bat_score"] + aw["runs"]).max()) if len(aw) else 0
+            hscore = int((hm["bat_score"] + hm["runs"]).max()) if len(hm) else 0
+            out.append(dict(game=gid, date=str(d["date"].iat[0].date()), away=away, home=home,
+                            away_score=ascore, home_score=hscore, ph=int(d["is_ph"].sum())))
+        return sorted(out, key=lambda x: x["date"], reverse=True)
+    if path == "/api/game":
+        gid = qs["game"][0]
+        d = decorate(pa[pa["game"] == gid])
+        d = d.assign(h=d["half"].map({"away": 0, "home": 1})).sort_values(["inning", "h", "seq"])
+        cols = ["pa_id", "inning", "half", "outs", "bases", "bat_team", "fld_team", "bat_score", "fld_score",
+                "batter", "pitcher", "is_ph", "result", "WPA"]
+        names=labels(str(d.date.iat[0].date()),inclusive=True) if len(d) else {}
+        d=d.assign(batter_display=d.start_batter.map(names),pitcher_display=d.start_pitcher.map(names),
+                   final_batter_display=d.batter.map(names),final_pitcher_display=d.pitcher.map(names))
+        return clean(d[cols+['start_batter','start_pitcher','mid_pa_actor_change','batter_display','pitcher_display','final_batter_display','final_pitcher_display']])
+    if path == "/api/replay":
+        pid = qs["pa"][0]
+        decision = qs.get("decision", ["ph"])[0]
+        if decision not in ("ph", "pen"):
+            raise ValueError("回放類型須為 ph 或 pen")
+        found = pa.loc[pa["pa_id"] == pid, "date"]
+        if found.empty:
+            raise ValueError("找不到此打席")
+        date = str(found.iat[0].date())
+        month = settings().month_for(date)
+        if not Path(mlmodel.path_for(month)).is_file():
+            result = published_replay(pid, date, decision)
+            if result is not None:
+                return result
+            raise ValueError(f'{date} 尚未發布回放。離線重算需準備 {month} 月初模型與對應的獨立批次。')
+        return replay_result(pid, decision)
+    if path == "/api/evaluate":
+        body = validate_evaluation(body)
+        m = model_for(FULL)
+        s = custom_situation(**body)
+        with _lock:
+            ml = mlmodel.get(FULL)
+        return build_result(s, m, ml)
+    if path == "/api/detail":
+        date = qs.get("date", [FULL])[0]
+        cutoff = date if date != 'custom' else FULL
+        batter = resolve_player(qs['batter'][0],cutoff=cutoff,team=qs.get('bat_team',[None])[0],role='B')
+        pitcher = resolve_player(qs['pitcher'][0],cutoff=cutoff,team=qs.get('fld_team',[None])[0],role='P')
+        m = model_for(cutoff)
+        return clean(matchup_detail(m,batter,pitcher))
+    raise KeyError(path)
+
+
+class Handler(SimpleHTTPRequestHandler):
+    def __init__(self, *a, **kw):
+        super().__init__(*a, directory=WEB, **kw)
+
+    def log_message(self, fmt, *args):
+        pass
+
+    def _send_json(self, obj, code=200):
+        data = json.dumps(obj, ensure_ascii=False).encode("utf8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _handle_api(self, body=None):
+        u = urlparse(self.path)
+        try:
+            self._send_json(api(u.path, parse_qs(u.query), body))
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            self._send_json(dict(error=f"{type(e).__name__}: {e}"), 400)
+
+    def do_GET(self):
+        if self.path.startswith("/api/"):
+            return self._handle_api()
+        return super().do_GET()
+
+    def do_POST(self):
+        try:
+            n = int(self.headers.get("Content-Length", 0))
+            if not 0 < n <= 1_000_000:
+                raise ValueError("情境資料長度無效")
+            body = json.loads(self.rfile.read(n))
+        except (ValueError, UnicodeDecodeError):
+            return self._send_json({"error":"請提交有效的 JSON 情境資料"}, 400)
+        return self._handle_api(body)
+
+
+if __name__ == "__main__":
+    print("載入資料與建立模型中（約 15 秒）…")
+    load()
+    rosters()
+    model_for(FULL)
+    mlmodel.get(FULL)
+    print(f"完成。請開啟 http://127.0.0.1:{PORT}")
+    ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

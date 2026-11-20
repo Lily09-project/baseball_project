@@ -1,0 +1,495 @@
+{
+  "source": "https://www.cpbl.com.tw/team/person",
+  "policy": "separate provider namespace; unique dated name/team anchors; no name-only or literal-ID joins",
+  "players": {
+    "rebas:CPBL:j33XE": [
+      "0000007088"
+    ],
+    "rebas:CPBL:elqzw": [
+      "0000003625"
+    ],
+    "rebas:CPBL:PoOO0": [
+      "0000002282"
+    ],
+    "rebas:CPBL:IIlEk": [
+      "0000006854"
+    ],
+    "rebas:CPBL:kyrTE": [
+      "0000006924"
+    ],
+    "rebas:CPBL:sCX7a": [
+      "0000006217"
+    ],
+    "rebas:CPBL:puKjJ": [
+      "0000006211"
+    ],
+    "rebas:CPBL:paNxV": [
+      "0000002285"
+    ],
+    "rebas:CPBL:NvcWV": [
+      "0000004645"
+    ],
+    "rebas:CPBL:P5qYX": [
+      "0000002304"
+    ],
+    "rebas:CPBL:nm81R": [
+      "0000005291"
+    ],
+    "rebas:CPBL:ZkDCF": [
+      "0000001606"
+    ],
+    "rebas:CPBL:w5KG8": [
+      "0000002298"
+    ],
+    "rebas:CPBL:uokqM": [
+      "0000006224"
+    ],
+    "rebas:CPBL:P4Fe3": [
+      "0000006732"
+    ],
+    "rebas:CPBL:2QmgM": [
+      "0000006909"
+    ],
+    "rebas:CPBL:jSr5s": [
+      "0000005532"
+    ],
+    "rebas:CPBL:ukKwI": [
+      "0000005533"
+    ],
+    "rebas:CPBL:KFxfq": [
+      "0000006926"
+    ],
+    "rebas:CPBL:c5JFr": [
+      "0000007064"
+    ],
+    "rebas:CPBL:jLMPc": [
+      "0000003645"
+    ],
+    "rebas:CPBL:pAMDg": [
+      "0000006718"
+    ],
+    "rebas:CPBL:AOjct": [
+      "0000000910"
+    ],
+    "rebas:CPBL:uKyUf": [
+      "0000004622"
+    ],
+    "rebas:CPBL:zaYo4": [
+      "0000006716"
+    ],
+    "rebas:CPBL:p84Nx": [
+      "0000006938"
+    ],
+    "rebas:CPBL:OqNVW": [
+      "0000006888"
+    ],
+    "rebas:CPBL:0fd4d": [
+      "0000000132"
+    ],
+    "rebas:CPBL:WiffT": [
+      "0000005340"
+    ],
+    "rebas:CPBL:0YgQ0": [
+      "0000007089"
+    ],
+    "rebas:CPBL:VZZgs": [
+      "0000001318"
+    ],
+    "rebas:CPBL:c3PEk": [
+      "0000001119"
+    ],
+    "rebas:CPBL:P5S6r": [
+      "0000002661"
+    ],
+    "rebas:CPBL:zpOzg": [
+      "0000006939"
+    ],
+    "rebas:CPBL:AGbc": [
+      "0000002307"
+    ],
+    "rebas:CPBL:iDWQ3": [
+      "0000002352"
+    ],
+    "rebas:CPBL:LsMyw": [
+      "0000002707"
+    ],
+    "rebas:CPBL:STlx2": [
+      "0000001291"
+    ],
+    "rebas:CPBL:8wMt5": [
+      "0000005545"
+    ],
+    "rebas:CPBL:ElLgX": [
+      "0000003345"
+    ],
+    "rebas:CPBL:a45g": [
+      "0000006737"
+    ],
+    "rebas:CPBL:0pBZx": [
+      "0000003343"
+    ],
+    "rebas:CPBL:IYo8c": [
+      "0000000753"
+    ],
+    "rebas:CPBL:WbnjG": [
+      "0000007076"
+    ],
+    "rebas:CPBL:iAcZZ": [
+      "0000000158"
+    ],
+    "rebas:CPBL:qGUE1": [
+      "0000001118"
+    ],
+    "rebas:CPBL:yVVZM": [
+      "0000005496"
+    ],
+    "rebas:CPBL:bmiMl": [
+      "0000006213"
+    ],
+    "rebas:CPBL:h4Peg": [
+      "0000006233"
+    ],
+    "rebas:CPBL:Y0UJM": [
+      "0000006223"
+    ],
+    "rebas:CPBL:m1M26": [
+      "0000003609"
+    ],
+    "rebas:CPBL:00Or0": [
+      "0000003563"
+    ],
+    "rebas:CPBL:nL5L": [
+      "0000006728"
+    ],
+    "rebas:CPBL:7SWLU": [
+      "0000000045"
+    ],
+    "rebas:CPBL:PKNKN": [
+      "0000001474"
+    ],
+    "rebas:CPBL:s6QQp": [
+      "0000006858"
+    ],
+    "rebas:CPBL:3M1Jq": [
+      "0000005546"
+    ],
+    "rebas:CPBL:BMBs8": [
+      "0000006851"
+    ],
+    "rebas:CPBL:SCI7M": [
+      "0000007091"
+    ],
+    "rebas:CPBL:oUEbG": [
+      "0000001756"
+    ],
+    "rebas:CPBL:42OO1": [
+      "0000005298"
+    ],
+    "rebas:CPBL:qLpqc": [
+      "0000007312"
+    ],
+    "rebas:CPBL:jSeis": [
+      "0000007302"
+    ],
+    "rebas:CPBL:Y1OFa": [
+      "0000005567"
+    ],
+    "rebas:CPBL:BpLpN": [
+      "0000000908"
+    ],
+    "rebas:CPBL:pKHDZ": [
+      "0000000356"
+    ],
+    "rebas:CPBL:Fnfek": [
+      "0000006806"
+    ],
+    "rebas:CPBL:3zbEo": [
+      "0000005306"
+    ],
+    "rebas:CPBL:13721": [
+      "0000007621"
+    ],
+    "rebas:CPBL:ojwr3": [
+      "0000003649"
+    ],
+    "rebas:CPBL:gPoLb": [
+      "0000007268"
+    ],
+    "rebas:CPBL:a4cUR": [
+      "0000005333"
+    ],
+    "rebas:CPBL:uw5wXi": [
+      "0000003174"
+    ],
+    "rebas:CPBL:u6XUJ": [
+      "0000005540"
+    ],
+    "rebas:CPBL:SioVD": [
+      "0000005510"
+    ],
+    "rebas:CPBL:dFblH": [
+      "0000005542"
+    ],
+    "rebas:CPBL:8J0xd": [
+      "0000004642"
+    ],
+    "rebas:CPBL:B2um0": [
+      "0000006928"
+    ],
+    "rebas:CPBL:nNXFY": [
+      "0000001286"
+    ],
+    "rebas:CPBL:zbFte": [
+      "0000001339"
+    ],
+    "rebas:CPBL:pCoH1": [
+      "0000002289"
+    ],
+    "rebas:CPBL:psHWp": [
+      "0000006872"
+    ],
+    "rebas:CPBL:RCSOc": [
+      "0000004643"
+    ],
+    "rebas:CPBL:IbHQY": [
+      "0000006730"
+    ],
+    "rebas:CPBL:VESWD": [
+      "0000006713"
+    ],
+    "rebas:CPBL:vdpJ5": [
+      "0000001618"
+    ],
+    "rebas:CPBL:7m4NU": [
+      "0000006743"
+    ],
+    "rebas:CPBL:Dvre5": [
+      "0000002291"
+    ],
+    "rebas:CPBL:oYqGo": [
+      "0000001473"
+    ],
+    "rebas:CPBL:G8Yd1": [
+      "0000006930"
+    ],
+    "rebas:CPBL:1MV0s": [
+      "0000006240"
+    ],
+    "rebas:CPBL:narc8": [
+      "0000006931"
+    ],
+    "rebas:CPBL:1i8C4": [
+      "0000007071"
+    ],
+    "rebas:CPBL:2HG7r": [
+      "0000007079"
+    ],
+    "rebas:CPBL:AMRSK": [
+      "0000007315"
+    ],
+    "rebas:CPBL:ubS2f": [
+      "0000007589"
+    ],
+    "rebas:CPBL:GrjvL": [
+      "0000007013"
+    ],
+    "rebas:CPBL:pjM1N": [
+      "0000005342"
+    ],
+    "rebas:CPBL:54TAw": [
+      "0000007037"
+    ],
+    "rebas:CPBL:WeQIm": [
+      "0000003211"
+    ],
+    "rebas:CPBL:C5Lw5": [
+      "0000000929"
+    ],
+    "rebas:CPBL:jEljN": [
+      "0000007313"
+    ],
+    "rebas:CPBL:xZBmj": [
+      "0000000153"
+    ],
+    "rebas:CPBL:rfEOE": [
+      "0000004636"
+    ],
+    "rebas:CPBL:TgNKb": [
+      "0000006927"
+    ],
+    "rebas:CPBL:N6NUc": [
+      "0000006229"
+    ],
+    "rebas:CPBL:Excm5": [
+      "0000007086"
+    ],
+    "rebas:CPBL:ro4pL": [
+      "0000007094"
+    ],
+    "rebas:CPBL:8JvUf": [
+      "0000007085"
+    ],
+    "rebas:CPBL:ta2z0": [
+      "0000007078"
+    ],
+    "rebas:CPBL:FGizK": [
+      "0000006835"
+    ],
+    "rebas:CPBL:1T6yz": [
+      "0000006929"
+    ],
+    "rebas:CPBL:CWOy2": [
+      "0000006810"
+    ],
+    "rebas:CPBL:ZvyKT": [
+      "0000005553"
+    ],
+    "rebas:CPBL:xdLku": [
+      "0000004633"
+    ],
+    "rebas:CPBL:5PuU": [
+      "0000006738"
+    ],
+    "rebas:CPBL:pAvtk": [
+      "0000006216"
+    ],
+    "rebas:CPBL:0uRxO": [
+      "0000002297"
+    ],
+    "rebas:CPBL:LlGVK": [
+      "0000001804"
+    ],
+    "rebas:CPBL:7eWTJ": [
+      "0000002305"
+    ],
+    "rebas:CPBL:PtuDN": [
+      "0000007301"
+    ],
+    "rebas:CPBL:b3UAW": [
+      "0000005569"
+    ],
+    "rebas:CPBL:ooOfM": [
+      "0000000362"
+    ],
+    "rebas:CPBL:G6U5F": [
+      "0000006936"
+    ],
+    "rebas:CPBL:m6tXZ": [
+      "0000005296"
+    ],
+    "rebas:CPBL:625kG": [
+      "0000006868"
+    ],
+    "rebas:CPBL:vBAPT": [
+      "0000007009"
+    ],
+    "rebas:CPBL:PBapN": [
+      "0000006847"
+    ],
+    "rebas:CPBL:lWSaS": [
+      "0000005310"
+    ],
+    "rebas:CPBL:ZtyCx": [
+      "0000000159"
+    ],
+    "rebas:CPBL:1juVE": [
+      "0000000935"
+    ],
+    "rebas:CPBL:yvoBa": [
+      "0000000743"
+    ],
+    "rebas:CPBL:Q4x6M": [
+      "0000007278"
+    ],
+    "rebas:CPBL:Nf4Ac": [
+      "0000005531"
+    ],
+    "rebas:CPBL:JID82": [
+      "0000000361"
+    ],
+    "rebas:CPBL:ID8FP": [
+      "0000006940"
+    ],
+    "rebas:CPBL:krwFy": [
+      "0000003533"
+    ],
+    "rebas:CPBL:dNaQr": [
+      "0000005548"
+    ],
+    "rebas:CPBL:2mO1b": [
+      "0000005522"
+    ],
+    "rebas:CPBL:HEtHO": [
+      "0000003183"
+    ],
+    "rebas:CPBL:8KmAn": [
+      "0000001754"
+    ],
+    "rebas:CPBL:3ZQ2": [
+      "0000006202"
+    ],
+    "rebas:CPBL:zGfee": [
+      "0000006861"
+    ],
+    "rebas:CPBL:Qznkv": [
+      "0000006856"
+    ],
+    "rebas:CPBL:UVW1k": [
+      "0000004627"
+    ],
+    "rebas:CPBL:Nfm2a": [
+      "0000004641"
+    ],
+    "rebas:CPBL:pemp0": [
+      "0000007031"
+    ],
+    "rebas:CPBL:qgIhF": [
+      "0000006725"
+    ],
+    "rebas:CPBL:BhwEG": [
+      "0000006714"
+    ],
+    "rebas:CPBL:ldmM0": [
+      "0000007304"
+    ],
+    "rebas:CPBL:KNmRt": [
+      "0000005549"
+    ],
+    "rebas:CPBL:7TPaU": [
+      "0000007070"
+    ],
+    "rebas:CPBL:eChCD": [
+      "0000006225"
+    ],
+    "rebas:CPBL:UeDA6": [
+      "0000006235"
+    ],
+    "rebas:CPBL:yDdjY": [
+      "0000005571"
+    ],
+    "rebas:CPBL:l6zUW": [
+      "0000003339"
+    ],
+    "rebas:CPBL:vxQ8H": [
+      "0000006933"
+    ],
+    "rebas:CPBL:dgRRh": [
+      "0000006734"
+    ],
+    "rebas:CPBL:84OaY": [
+      "0000007288"
+    ],
+    "rebas:CPBL:WPyQB": [
+      "0000007308"
+    ],
+    "rebas:CPBL:Ifqha": [
+      "0000002275"
+    ],
+    "rebas:CPBL:RJzVu": [
+      "0000002286"
+    ]
+  },
+  "training_version": 5,
+  "engine_contract": 5,
+  "batch_id": "ce4f4627585377e8864f92bf850fe6dc17f0335ee657c960afcce2edfa5ce26f"
+}

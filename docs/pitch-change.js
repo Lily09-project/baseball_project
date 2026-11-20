@@ -1,0 +1,98 @@
+/* Descriptive companion to matchup detail; never changes recommendation scores. */
+"use strict";
+window.PitchChange = (() => {
+  const escape = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const ratio = v => Number.isFinite(v)&&v>=0&&v<=1;
+  const pct = v => !ratio(v)?"—":v>0&&v<.001?"&lt;0.1%":`${(v * 100).toFixed(1)}%`;
+  const pp = v => !Number.isFinite(v)?"—":v!==0&&Math.abs(v)<.1?`${v>0?'增加':'減少'}不到 0.1 百分點`:`${v>0?'+':''}${v===0?'0.0':v.toFixed(1)} 百分點`;
+  const requests = new Map();
+  const timeoutOptions = ms => typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function" ? {signal:AbortSignal.timeout(ms)} : {};
+  async function fetchData(url) {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') return fetch(url, timeoutOptions(30000));
+    if (typeof AbortController === 'undefined') return fetch(url);
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 30000);
+    try { return await fetch(url, {signal:controller.signal}); } finally { clearTimeout(timer); }
+  }
+  async function read(url) {
+    if (!requests.has(url)) requests.set(url, fetchData(url).then(r => {
+      if (!r.ok) throw new Error("近期配球資料尚未匯出或無法取得");
+      return r.json();
+    }).catch(e => { requests.delete(url); throw e; }));
+    return requests.get(url);
+  }
+  async function staticResult({pitcher, season, cutoff, hand, root = `data/pitch-change/${season}/`, batchId = typeof Engine!=='undefined'?Engine.model()?.batch_id:null}) {
+    if (!['ALL','L','R'].includes(hand)) throw new Error('左右打參數無效');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(cutoff) || Number.isNaN(Date.parse(cutoff)) || new Date(cutoff).toISOString().slice(0,10) !== cutoff) throw new Error('截止日期無效');
+    const index = await read(root + "index.json");
+    if (index.schema_version !== 2 || index.training_version !== 5 || index.engine_contract !== 5 || index.season!==season) throw new Error("配球資料版本不相容，請重新載入");
+    if(batchId&&index.batch_id!==batchId)throw new Error('配球與模型批次不同，請重新載入完整版本');
+    const key = index.pitchers[pitcher];
+    if (!key) throw new Error("此投手在所選球季沒有配球資料");
+    const file = await read(root + key);
+    if (file.schema_version !== 2 || file.batch_id !== index.batch_id) throw new Error("配球資料版本不相容，請重新載入");
+    const eligible = file.snapshots.filter(s => s.effective_from <= cutoff);
+    const snap = eligible[eligible.length - 1];
+    if (!snap) throw new Error("截止日早於所選球季");
+    if (!snap.hands[hand]) throw new Error('左右打資料缺漏，請重新匯出');
+    return {...snap.hands[hand], cutoff};
+  }
+  function render(d, view='adjusted') {
+    const raw=view==='raw';
+    if(raw)d={...d,coverage:[null,null],rows:d.rows.map(row=>({...row,adjusted:row.raw,
+      delta_pp:row.raw.every(Number.isFinite)?100*(row.raw[1]-row.raw[0]):null,interval:null,interpretation:''}))};
+    const b = d.windows.baseline, r = d.windows.recent;
+    const range = w => w.games.length ? `${w.games[0].date} 至 ${w.games.at(-1).date}` : "沒有符合日期的出賽";
+    const window = (w, title, kind) => `<div class="pc-window ${kind}"><strong>${title}</strong><span>${range(w)}</span><b>${w.selected_games} 場 · ${w.valid_pitches} 球</b></div>`;
+    const hasValues=d.rows.some(row=>Number.isFinite(row.delta_pp)||row.adjusted.some(ratio));
+    return `<div class="pc-status ${!raw&&d.status === 'ready' ? '' : 'pc-insufficient'}" role="status">${raw?(hasValues?'觀察配球：未調整球數，不作變化判定':'沒有可用配球紀錄'):d.status === "ready" ? "同條件配球比較" : "樣本不足，暫不判定"}</div>
+      <div class="pc-windows">${window(b,"之前最多 10 場","baseline")}${window(r,"最近 5 場","recent")}</div>
+      <div class="pc-legend"><span class="pc-key baseline">基準期</span><span class="pc-key recent">近期</span><span>差值：百分點</span></div>
+      <div class="pc-rows">${(hasValues?d.rows:[]).map(row => `<article class="pc-row"><div class="pc-row-title"><strong>${escape(row.group)}</strong><b title="差值依未四捨五入比例計算">${pp(row.delta_pp)}</b><span>${escape(d.status==='ready'?row.interpretation:'')}</span></div>
+        <div class="pc-bars">${row.adjusted.map((v,i) => `<div class="pc-bar-line"><span>${i ? "近期" : "基準"}</span><div class="pc-track"><div class="pc-bar ${i ? "recent" : "baseline"}" style="width:${ratio(v)?v*100:0}%"></div></div><b>${pct(v)}</b></div>`).join("")}</div>
+        </article>`).join("")}</div>
+      <details class="pc-method"><summary>資料與比較依據</summary><p>${d.season} 球季 · ${escape(d.cutoff)} 之前；最後紀錄 ${escape(d.last_observed || '無')}。</p>${d.reasons.length ? `<ul>${d.reasons.map(v=>`<li>${escape(v)}</li>`).join('')}</ul>` : ''}<p>${raw?'原始比例以各期有效球數為分母；未調整球數，合計時也未調整左右打組成。':`依球數與左右打調整；共同條件涵蓋基準 ${pct(d.coverage[0])}／近期 ${pct(d.coverage[1])}。`}</p>${raw?'':`<ul>${d.rows.map(row=>`<li>${escape(row.group)}：95% 重抽樣區間 ${row.interval ? `${pp(row.interval[0])} 至 ${pp(row.interval[1])}` : '未提供'}</li>`).join('')}</ul>`}<p>「低落」為球種群名稱。來源：${escape(d.source)}。</p></details>
+      <p class="pc-caveat">${raw?'未產生調整後區間或趨勢結論。':'配球改變不代表效果變好，也不是下一球預測。'}</p>`;
+  }
+  function mount({element, pitcher, cutoff, season=2025, hand="ALL", fetcher}) {
+    if (!element || !pitcher) return;
+    const wasOpen = element.querySelector('.pc-toggle')?.getAttribute('aria-expanded') === 'true';
+    let generation = 0;
+    let opened = false;
+    const label=typeof PlayerIdentity!=='undefined'?PlayerIdentity.name(pitcher):pitcher;
+    element.innerHTML = `<section class="card pc-card"><div class="card-h"><div><h2>近期配球比較</h2><p class="pc-subtitle">${escape(label)}</p></div><button class="pc-toggle" type="button" aria-expanded="false">查看配球比較</button></div><div class="pc-body" hidden><div class="pc-controls"><label>面對打者<select aria-label="配球比較的實際打者左右打"><option value="ALL">左右打合計</option><option value="L">面對左打</option><option value="R">面對右打</option></select></label><button class="pc-retry" type="button">重新載入</button></div><div class="pc-result" aria-live="polite"></div></div></section>`;
+    const toggle = element.querySelector('.pc-toggle'), body = element.querySelector('.pc-body');
+    element.querySelector('.pc-controls').insertAdjacentHTML('beforeend','<label>比較方式<select class="pc-view" aria-label="配球比較方式"><option value="adjusted">同條件比較</option><option value="raw">觀察配球（未調整）</option></select></label>');
+    const viewSelect=element.querySelector('.pc-view');
+    let preferredView=null,loaded=null;
+    const select = element.querySelector('select'), result = element.querySelector('.pc-result');
+    select.value = ['ALL','L','R'].includes(hand) ? hand : 'ALL';
+    async function update() {
+      const token = ++generation;
+      loaded=null;viewSelect.disabled=true;
+      result.setAttribute('aria-busy','true');
+      result.innerHTML = '<p role="status">載入配球比較…</p>';
+      try {
+        const options = {pitcher, cutoff, season, hand:select.value};
+        const d = await fetcher(options);
+        if (token !== generation || !element.contains(result)) return;
+        loaded=d;viewSelect.value=preferredView||(d.status==='ready'?'adjusted':'raw');
+        result.innerHTML = render(d,viewSelect.value);
+      } catch (e) {
+        if (token !== generation || !element.contains(result)) return;
+        result.innerHTML = `<p role="alert">${escape(e.message)}。可按「重新載入」重試。</p>`;
+      } finally { if (token === generation) {result.setAttribute('aria-busy','false');viewSelect.disabled=false;} }
+    }
+    toggle.onclick = () => {
+      const visible = body.hidden;
+      body.hidden = !visible;
+      toggle.setAttribute('aria-expanded',String(visible));
+      toggle.textContent = visible ? '收合配球比較' : '查看配球比較';
+      if (visible && !opened) { opened = true; update(); }
+    };
+    select.onchange = update;
+    viewSelect.onchange=()=>{preferredView=viewSelect.value;if(loaded)result.innerHTML=render(loaded,preferredView);};
+    element.querySelector('.pc-retry').onclick = update;
+    if (wasOpen) toggle.onclick();
+  }
+  return {mount, staticResult};
+})();

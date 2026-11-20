@@ -1,0 +1,3 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
+const root=(process.env.BASEBALL_STATIC_OUT||path.join(__dirname,'../docs/data'));
+test('the 2026 single-day view is independent of the roster and the seasonal dashboard',()=>{const html=fs.readFileSync(path.join(__dirname,'../docs/index.html'),'utf8'),app=fs.readFileSync(path.join(__dirname,'../docs/app.js'),'utf8');assert.match(html,/2026\/10\/04/);assert.doesNotMatch(html,/2025\/09\/20/);assert.match(app,/S.games = games.filter\(g=>g.date===HISTORY_DATE\)/);assert.match(app,/cutoff:HISTORY_DATE,season:historySeason/);assert.match(app,/audienceMode==='team'/);});
