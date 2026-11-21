@@ -17,7 +17,7 @@
 <meta property="og:locale" content="zh_TW">
 <meta name="twitter:card" content="summary_large_image">
 <script src="theme.js?v=20261025-v5-id1"></script>
-<link rel="stylesheet" href="style.css?v=website-audit-20261117">
+<link rel="stylesheet" href="style.css?v=visual-refresh-20261121">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%231e40af'/><path d='M9 9c4 4 4 10 0 14M23 9c-4 4-4 10 0 14' stroke='white' stroke-width='2' fill='none'/></svg>">
 </head>
 <body>
@@ -63,11 +63,11 @@
     <label for="replayCase" class="sr-only">依情境選擇回放案例</label>
     <select id="replayCase" hidden><option value="">依情境找案例</option></select>
   </div>
-  <div class="seg" id="backtestSeg" aria-label="單日分析內容"><button type="button" data-sub="season" class="on">當日總覽</button><button type="button" data-sub="replay">逐打席回放</button></div>
+  <div class="seg" id="backtestSeg" role="group" aria-label="單日分析內容"><button type="button" data-sub="season" class="on">當日總覽</button><button type="button" data-sub="replay">逐打席回放</button></div>
 </div>
 <section id="lineupPage" class="lineup-page" hidden aria-labelledby="lineupTitle">
   <div class="lineup-heading"><div><h2 id="lineupTitle" tabindex="-1">我方場上名單</h2></div><div><label class="f" for="lineupTeam">配置球隊</label><select id="lineupTeam"></select></div></div>
-  <div class="seg" aria-label="場上名單操作"><button type="button" id="lineupSetupTab" class="on" aria-pressed="true">設定先發</button><button type="button" id="lineupChangeTab" aria-pressed="false">設定換人</button></div>
+  <div class="seg" role="group" aria-label="場上名單操作"><button type="button" id="lineupSetupTab" class="on" aria-pressed="true">設定先發</button><button type="button" id="lineupChangeTab" aria-pressed="false">設定換人</button></div>
   <section id="lineupChanges" class="card" hidden aria-label="設定換人">
     <div class="card-b"><div class="row2">
       <div><label class="f" for="lineupChangeKind">調度類型</label><select id="lineupChangeKind"><option value="ph">代打</option><option value="pen">換投</option></select></div>
@@ -145,9 +145,9 @@
       <div class="card">
         <div class="card-h"><h2>情境設定</h2></div>
         <div class="card-b">
-          <div class="seg full" id="viewSeg">
-            <button data-view="offense" class="on"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bat"/></svg>我方進攻・<wbr>評估代打</button>
-            <button data-view="defense"><svg class="ui-icon" aria-hidden="true"><use href="#icon-ball"/></svg>我方防守・<wbr>評估換投</button>
+          <div class="seg full" id="viewSeg" role="group" aria-label="評估方向">
+            <button type="button" data-view="offense" class="on"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bat"/></svg>我方進攻・<wbr>評估代打</button>
+            <button type="button" data-view="defense"><svg class="ui-icon" aria-hidden="true"><use href="#icon-ball"/></svg>我方防守・<wbr>評估換投</button>
           </div>
           <div class="row2">
             <div><label class="f" for="myTeam">我方球隊</label><select id="myTeam"></select></div>
@@ -156,20 +156,20 @@
           <div id="lineupSummary" class="lineup-summary"><span class="lineup-summary-text">自由選擇球員；不需先設定場上名單。</span><span class="lineup-summary-actions"><span class="selection-badge">自由選人</span></span></div>
           <div class="state">
             <div class="state-control">
-              <label class="f">局數</label>
-              <div class="stepper">
-                <button id="innDown" aria-label="減一局">−</button>
-                <span class="val num" id="innVal">1</span>
-                <button id="innUp" aria-label="加一局">+</button>
-                <div class="seg" id="halfSeg" style="margin-left:6px">
-                  <button data-half="away" class="on">上</button>
-                  <button data-half="home">下</button>
+              <label class="f" id="inningLabel">局數</label>
+              <div class="stepper" role="group" aria-labelledby="inningLabel">
+                <button type="button" id="innDown" aria-label="減一局">−</button>
+                <span class="val num" id="innVal" aria-live="polite">1</span>
+                <button type="button" id="innUp" aria-label="加一局">+</button>
+                <div class="seg" id="halfSeg" role="group" aria-label="上下半局" style="margin-left:6px">
+                  <button type="button" data-half="away" class="on">上</button>
+                  <button type="button" data-half="home">下</button>
                 </div>
               </div>
-              <div class="out-setting"><span class="f">出局數</span><div class="outs" id="outs"><button data-o="1" aria-label="1 出局"></button><button data-o="2" aria-label="2 出局"></button></div><output id="outsValue">0 出局</output></div>
+              <div class="out-setting"><span class="f">出局數</span><div class="outs" id="outs"><button type="button" data-o="1" aria-label="1 出局"></button><button type="button" data-o="2" aria-label="2 出局"></button></div><output id="outsValue">0 出局</output></div>
             </div>
             <div class="base-setting">
-              <label class="f">壘上跑者</label>
+              <label class="f" id="basesLabel">壘上跑者</label>
               <svg class="diamond" viewBox="0 0 120 100" id="diamond">
                 <path d="M60 92 L100 52 L60 12 L20 52 Z" fill="none" stroke="var(--line)" stroke-width="2"/>
                 <rect class="base" data-b="2" x="51" y="3" width="18" height="18" transform="rotate(45 60 12)" fill="var(--panel)" stroke="var(--muted)" stroke-width="2"/>
@@ -177,7 +177,7 @@
                 <rect class="base" data-b="4" x="11" y="43" width="18" height="18" transform="rotate(45 20 52)" fill="var(--panel)" stroke="var(--muted)" stroke-width="2"/>
                 <path d="M54 86 h12 v4 l-6 6 l-6 -6 z" fill="var(--muted)"/>
               </svg>
-              <div id="baseControls"><button type="button" data-b="1">一壘</button><button type="button" data-b="2">二壘</button><button type="button" data-b="4">三壘</button></div>
+              <div id="baseControls" role="group" aria-labelledby="basesLabel"><button type="button" data-b="1">一壘</button><button type="button" data-b="2">二壘</button><button type="button" data-b="4">三壘</button></div>
             </div>
           </div>
           <div class="row2 score-controls">
@@ -194,12 +194,12 @@
               <div><label class="f" for="duePos">目前守位</label><select id="duePos" aria-describedby="duePosLock"></select><p id="duePosLock" class="lock-note" hidden>依場上名單固定</p></div>
             </div>
             <div style="margin-top:14px">
-              <label class="f">板凳可用野手（請確認今日可上場）</label>
+              <label class="f" id="benchLabel">板凳可用野手（請確認今日可上場）</label>
               <div id="benchAvailability" class="today-availability" aria-live="polite"></div>
               <label class="f search-label" for="benchFilter">搜尋板凳球員</label><input type="search" id="benchFilter" placeholder="姓名或 2026 背號…">
               <button type="button" class="link bench-toggle-all" id="benchToggleAll">全部展開</button>
-              <div class="checklist" id="benchList" style="margin-top:6px"></div>
-              <div class="mini-actions"><button class="link" id="benchAll" aria-label="全選所有板凳球員">全選</button><button class="link" id="benchNone" aria-label="清除所有板凳球員">清除</button></div>
+              <div class="checklist" id="benchList" role="group" aria-labelledby="benchLabel" style="margin-top:6px"></div>
+              <div class="mini-actions"><button type="button" class="link" id="benchAll" aria-label="全選所有板凳球員">全選</button><button type="button" class="link" id="benchNone" aria-label="清除所有板凳球員">清除</button></div>
             </div>
           </div>
 
@@ -208,28 +208,28 @@
             <div><label class="f" for="myPitcher">我方場上投手</label><select id="myPitcher" aria-describedby="myPitcherLock"></select><p id="myPitcherLock" class="lock-note" hidden>依場上名單固定；自由選人請按上方「切換一般使用者」。</p></div>
             <div class="row2" style="margin-top:14px">
               <div><label class="f" for="pitchCount">本場已投球數</label><input type="number" id="pitchCount" min="0" max="160" value="0"></div>
-              <div><label class="f">本場角色</label><div class="seg full" id="roleSeg"><button data-r="1">先發</button><button data-r="0" class="on">後援</button></div></div>
+              <div><label class="f" id="roleLabel">本場角色</label><div class="seg full" id="roleSeg" role="group" aria-labelledby="roleLabel"><button type="button" data-r="1">先發</button><button type="button" data-r="0" class="on">後援</button></div></div>
             </div>
             <div hidden><label class="f" for="myStreak">今天之前連續登板</label><select id="myStreak"><option value="0">沒有</option><option value="1">今天第 2 天</option><option value="2">今天第 3 天以上</option></select></div>
             <p class="mut" id="pcHint"></p>
             <div style="margin-top:14px">
-              <label class="f">對手接下來 3 棒</label>
-              <div class="next-batters"><div class="next-batter"><label for="nb1">第 1 棒</label><select id="nb1" aria-label="接下來第一棒"></select><span class="next-hand" data-next-hand="nb1"></span></div><div class="next-batter"><label for="nb2">第 2 棒</label><select id="nb2" aria-label="接下來第二棒"></select><span class="next-hand" data-next-hand="nb2"></span></div><div class="next-batter"><label for="nb3">第 3 棒</label><select id="nb3" aria-label="接下來第三棒"></select><span class="next-hand" data-next-hand="nb3"></span></div></div>
+              <label class="f" id="nextBattersLabel">對手接下來 3 棒</label>
+              <div class="next-batters" role="group" aria-labelledby="nextBattersLabel"><div class="next-batter"><label for="nb1">第 1 棒</label><select id="nb1"></select><span class="next-hand" data-next-hand="nb1"></span></div><div class="next-batter"><label for="nb2">第 2 棒</label><select id="nb2"></select><span class="next-hand" data-next-hand="nb2"></span></div><div class="next-batter"><label for="nb3">第 3 棒</label><select id="nb3"></select><span class="next-hand" data-next-hand="nb3"></span></div></div>
             </div>
             <div style="margin-top:14px">
-              <label class="f">牛棚可用投手（請確認今日可上場）</label>
+              <label class="f" id="penLabel">牛棚可用投手（請確認今日可上場）</label>
               <div id="penAvailability" class="today-availability" aria-live="polite"></div>
               <label class="f search-label" for="penFilter">搜尋牛棚投手</label><input type="search" id="penFilter" placeholder="姓名或 2026 背號…">
               <div id="pitcherGroups"></div>
               <button type="button" class="link bench-toggle-all" id="penToggleAll" aria-controls="penList" aria-expanded="false">全部展開</button>
               <p id="penSearchStatus" class="mut hidden" role="status"></p>
-              <div class="checklist" id="penList" hidden></div>
-              <div class="mini-actions"><button class="link" id="penAll" aria-label="全選牛棚投手"><svg class="ui-icon" aria-hidden="true"><use href="#icon-check"/></svg>全選</button><button class="link" id="penNone" aria-label="清除牛棚投手"><svg class="ui-icon" aria-hidden="true"><use href="#icon-clear"/></svg>清除選取</button></div>
+              <div class="checklist" id="penList" role="group" aria-labelledby="penLabel" hidden></div>
+              <div class="mini-actions"><button type="button" class="link" id="penAll" aria-label="全選牛棚投手"><svg class="ui-icon" aria-hidden="true"><use href="#icon-check"/></svg>全選</button><button type="button" class="link" id="penNone" aria-label="清除選取的牛棚投手"><svg class="ui-icon" aria-hidden="true"><use href="#icon-clear"/></svg>清除選取</button></div>
               <details id="bullpenCapacity" class="capacity-planner"></details>
             </div>
           </div>
 
-          <div id="formError" aria-live="polite"></div><button class="btn-primary" id="evalBtn" disabled><svg class="ui-icon" aria-hidden="true"><use href="#icon-compare"/></svg>評估</button>
+          <div id="formError" aria-live="polite"></div><button type="button" class="btn-primary" id="evalBtn" disabled><svg class="ui-icon" aria-hidden="true"><use href="#icon-compare"/></svg>評估</button>
         </div>
       </div>
     </div>
@@ -304,6 +304,6 @@
 <script src="backtest.js?v=20261114-2026"></script>
 <script src="bullpen-plan.js?v=20261026-1"></script>
 <script src="bullpen-plan-ui.js?v=availability-20261116"></script>
-<script src="app.js?v=website-audit-20261117"></script>
+<script src="app.js?v=visual-refresh-20261121"></script>
 </body>
 </html>

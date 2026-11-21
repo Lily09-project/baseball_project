@@ -75,3 +75,7 @@ output/replay-evidence-20261116/
 
 # Competition fielding source is available from the private archive.
 /data/cpbl/positions_2025.csv
+
+# 本機封存（只追蹤說明檔）
+多餘資料/*
+!多餘資料/README.md
