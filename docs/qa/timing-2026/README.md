@@ -28,4 +28,4 @@
 
 設定 `BASEBALL_RUNTIME_CONFIG` 為 `config/site-2026.json`，以通過[資料進件驗證](../data-2026-20261114/README.md)的三季資料作為 `BASEBALL_DATA_ROOT`，並指定獨立的 `BASEBALL_MODEL_DIR` 與輸出路徑。按表中截止日依序執行 `python src/mlmodel.py YYYY-MM-01`。使用 `scripts/stage_2026_full_model.py` 採用的合約結構建立獨立批次，`models` 列出表中八個日期、檔名與實際 SHA-256。以 `scripts/training_source.py` 計算來源指紋及合約指紋，並將 `BASEBALL_BATCH_CONTEXT` 指向這份批次。使用 `python src/timing_backtest.py 8` 產生結果。若要把原本寫在 `output/timing_backtest.csv` 的逐打席檔也獨立保存，應在隔離工作樹執行。
 
-[機器驗證收據](verification.json) · [月份批次合約](batch-context.json) · [38 頁簡報與 PDF](../../../presentations/competition-2026/README.md#最新工作稿)
+[機器驗證收據](verification.json) · [月份批次合約](batch-context.json)

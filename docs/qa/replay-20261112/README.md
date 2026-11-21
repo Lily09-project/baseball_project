@@ -20,4 +20,3 @@
 
 將輸出目錄的上一層所產生的 `batch-context.json` 設為 `BASEBALL_BATCH_CONTEXT`，並將輸出資料目錄設為 `BASEBALL_STATIC_OUT`。以 `scripts/export_fielding_plans.py --out` 補齊當日資料夾的 `fielding-plans.json`，再執行 `tests/verify_history_day.py` 重算。日資料納入網站後，執行 `scripts/prepare_site.py` 檢查靜態發布檔案。
 
-[32 頁簡報與 PDF](../../../presentations/competition-2026/README.md#最新工作稿)

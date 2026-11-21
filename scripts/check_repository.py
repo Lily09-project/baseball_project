@@ -10,7 +10,7 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 CURRENT_DOCS = ['README.md', '協作指南.md', '資料來源.md', 'docs/技術細節.md', 'docs/qa/README.md',
-    'presentations/competition-2026/README.md', 'docs/training-v5.md', 'docs/ci-validation.md',
+    'docs/training-v5.md', 'docs/ci-validation.md',
     'docs/qa/release-foundation-20261106/README.md',
     'docs/qa/replay-20261112/README.md', 'docs/qa/model-horizons-20261113/README.md',
     'docs/qa/data-2026-20261114/README.md', 'docs/qa/website-roadmap-20261115/README.md',

@@ -42,7 +42,7 @@ output/revision-20261021/promotion-backup/
 output/revision-20261021/*.csv
 
 # Local research, round-trip workspaces and revision backups are not Git deliverables.
-# Curated release evidence and final slides belong in docs/qa/ and presentations/.
+# Curated release evidence belongs in docs/qa/.
 output/revision-20261021/
 output/final-closeout-20261022/
 

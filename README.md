@@ -3,9 +3,7 @@
 > 比賽打到關鍵打席，該讓現任打者續打、派代打，還是換投？
 > 這個網站用中職公開資料，在**同一個局勢**下比較每位候選人選，回答教練最需要的三個問題：**差多少？誰接守？憑什麼？**
 
-**GitHub Pages 網址（啟用後可用）：[一球兩面](https://lily09-project.github.io/baseball_project/)**（免安裝，電腦與手機都能用）
-
-此倉庫是[原專案](https://github.com/Da-Xiong-Chen/baseball_project)的獨立副本，保留原團隊署名及資料來源。
+**網站：[一球兩面](https://lily09-project.github.io/baseball_project/)**（免安裝，電腦與手機都能用）
 
 ## 目前版本與最新內容
 
@@ -17,17 +15,15 @@
 | PR 檢查與瀏覽器異常操作 | [現行發布驗收](docs/project-closeout-20261116.md) · [CI 執行方式](docs/ci-validation.md) |
 | 程式碼審查與修正 | [回放連結與本機 API](docs/project-closeout-20261116.md) · [11/6 整合審查](docs/qa/release-foundation-20261106/README.md) |
 | 後續模型及資料工作 | [季中迭代的驗收方法](docs/qa/season-iteration-2026/README.md) · [資料來源與守位](資料來源.md) |
-| 參賽簡報 | [38 頁工作稿 PPT／PDF](presentations/competition-2026/README.md#最新工作稿) |
 | 最新模型實驗 | [2026 換投時機回測](docs/qa/timing-2026/README.md) · [疲勞調整與勝率校準](docs/qa/website-roadmap-20261115/README.md) · [季中迭代](docs/qa/season-iteration-2026/README.md) |
 | 模型與身份基準 | 10/25 v5 整合驗收 |
 
-**上游版本紀錄**　8 個比賽日回放、球隊調度與 2026 模型驗收已隨 [PR #38](https://github.com/Da-Xiong-Chen/baseball_project/pull/38) 上線。後續的候選、接守與球隊名單修正見 [PR #39](https://github.com/Da-Xiong-Chen/baseball_project/pull/39)，本版換人規則、情境載入及退場紀錄重置見 [PR #40](https://github.com/Da-Xiong-Chen/baseball_project/pull/40)。可依[本機執行](#本機執行)預覽，此副本的上線狀態見[部署紀錄](https://github.com/Lily09-project/baseball_project/deployments)。
+**版本紀錄**　已完成 8 個比賽日回放、球隊調度與 2026 模型驗收，並陸續補上候選、接守與球隊名單修正，以及換人規則、情境載入及退場紀錄重置。可依[本機執行](#本機執行)預覽，上線狀態見[部署紀錄](https://github.com/Lily09-project/baseball_project/deployments)。
 
 | 項目 | 內容 |
 |---|---|
 | 競賽 | 2026 野革盃 台灣棒球數據黑客松 |
 | 隊名／成員 | 一球兩面｜蘇櫟、陳信安 |
-| 參賽簡報 | [最新 38 頁工作稿（PPT／PDF）](presentations/competition-2026/README.md) |
 | 資料 | 2024–2026 中職一軍例行賽逐球紀錄（Rebas Open Data）與歷年守位 |
 
 ![代打評估：8 局上統一 1:2 落後、一出局二壘有人，左投魔力藍對上左打林佳緯，系統比較板凳候選，最佳候選陳鏞基未達提示門檻](assets/readme/evaluation.png)
@@ -57,7 +53,6 @@
 | 系統的建議和教練實際調度差在哪 | 選「單日分析」，選日期、球隊與比賽，或直接開啟當天的代表案例，再揭示實際調度及結果 |
 | 方法和數據 | 本頁[方法](#方法)與[驗證結果](#驗證結果)；完整說明見 [docs/技術細節.md](docs/技術細節.md) |
 | 驗證是否確實 | [八日回放數值核對](docs/qa/website-roadmap-20261115/replay-verification.json) · [網站與 API 操作驗收](docs/project-closeout-20261116.md) · [全部測試與驗收索引](docs/qa/README.md) |
-| 提案內容 | [38 頁參賽簡報](presentations/competition-2026/README.md) |
 
 **我們的四個重點：**
 
@@ -195,7 +190,6 @@ python -m unittest discover -s tests     # 完整 Python：需三季逐球資料
 | `server.py` | 本機完整版伺服器與 API |
 | `models/` | 訓練好的模型權重 |
 | `tests/` | Python 與前端測試 |
-| `presentations/` | 參賽簡報 |
 
 | 文件 | 適合誰看 |
 |---|---|
