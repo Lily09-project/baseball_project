@@ -11,7 +11,7 @@
 
 | 要找的內容 | 最新入口 |
 |---|---|
-| 最新網站、模型與資料驗收 | [候選名單、接守與新球季演練](docs/qa/replay-evidence-20261116/README.md) · [專案收尾與發布驗收](docs/project-closeout-20261116.md) · [2026 球季資料](docs/qa/data-2026-20261114/README.md) |
+| 最新網站、模型與資料驗收 | [11/21 視覺精修與專案整理](docs/qa/visual-refresh-20261121/README.md) · [候選名單、接守與新球季演練](docs/qa/replay-evidence-20261116/README.md) · [專案收尾與發布驗收](docs/project-closeout-20261116.md) · [2026 球季資料](docs/qa/data-2026-20261114/README.md) |
 | PR 檢查與瀏覽器異常操作 | [現行發布驗收](docs/project-closeout-20261116.md) · [CI 執行方式](docs/ci-validation.md) |
 | 程式碼審查與修正 | [回放連結與本機 API](docs/project-closeout-20261116.md) · [11/6 整合審查](docs/qa/release-foundation-20261106/README.md) |
 | 後續模型及資料工作 | [季中迭代的驗收方法](docs/qa/season-iteration-2026/README.md) · [資料來源與守位](資料來源.md) |
