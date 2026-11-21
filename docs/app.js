@@ -405,6 +405,8 @@ const reasonText = items => playerText(items.filter(i => i.good !== null).map(i 
 /* ---------------- 初始化 ---------------- */
 async function init() {
   try {
+    // GitHub Pages 只有靜態檔，不先探測 API，避免每次載入多一次 404
+    if (/\.github\.io$/i.test(location.hostname)) throw 0;
     const r = await fetchTimed("api/meta");
     if (!r.ok || !(r.headers.get("content-type") || "").includes("json")) throw 0;
   } catch {
