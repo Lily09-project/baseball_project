@@ -332,11 +332,6 @@ async function loadDemo() {
   status.textContent='8 局上 統一 1：2 富邦，一出局二壘有人';
   await evaluateCustom();
 }
-function clearSituation() {
-  S.inning = 1; S.half = 'away'; S.outs = 0; S.bases = 0;
-  $('#myScore').value = 0; $('#oppScore').value = 0;
-  renderState(); syncScoreControls(); refreshAutoPitchCount(); invalidateCustom(); presetStatus('已回到 1 局上 0:0。');
-}
 /* 連投標記：今天之前連續登板天數（0／1／2 以上），只用在自訂情境的換投評估 */
 function streakMarks() {
   const out = {};
@@ -426,9 +421,16 @@ async function init() {
   $('#lineupSeasonNote').textContent=`預設為 ${runtime.season} 最後 30 場最常先發的球員；名單不會跨裝置同步。`;
   $$('#benchFilter,#penFilter,#lineupSearch').forEach(el=>el.placeholder=`姓名或 ${runtime.season} 背號…`);
   const seasons=runtime.data_seasons||[];if($('#dataScope')&&seasons.length)$('#dataScope').textContent=`中職一軍 ${runtime.season} 球季 · 模型以 ${seasons[0]}–${seasons.at(-1)} 逐球資料訓練`;
-  try { const numbers=await json(runtimeAsset('numbers',`data/player-numbers-${runtime.season}.json`));if(numbers.season===runtime.season&&numbers.teams)playerNumbers2025=numbers.teams; } catch(e) { if(e.code==='BATCH_MISMATCH')throw e; }
-  try { officialPlayers=(await json('data/cpbl-players.json')).players||{}; } catch(e) { if(e.code==='BATCH_MISMATCH')throw e; }
-  try { const d=await json(runtimeAsset('default_lineups',`data/default-lineups-${runtime.season}.json`));if(d.season===runtime.season&&typeof LineupBoard!=='undefined')LineupBoard.setDefaults(d.teams); } catch(e) { if(e.code==='BATCH_MISMATCH')throw e; }
+  // 三份輔助資料同時抓；任一份失敗不影響其他，只有批次不一致要中止
+  const [numbersRes,playersRes,lineupsRes]=await Promise.allSettled([
+    json(runtimeAsset('numbers',`data/player-numbers-${runtime.season}.json`)),
+    json('data/cpbl-players.json'),
+    json(runtimeAsset('default_lineups',`data/default-lineups-${runtime.season}.json`))]);
+  const mismatch=[numbersRes,playersRes,lineupsRes].find(r=>r.status==='rejected'&&r.reason?.code==='BATCH_MISMATCH');
+  if(mismatch)throw mismatch.reason;
+  if(numbersRes.status==='fulfilled'){const numbers=numbersRes.value;if(numbers.season===runtime.season&&numbers.teams)playerNumbers2025=numbers.teams;}
+  if(playersRes.status==='fulfilled')officialPlayers=playersRes.value.players||{};
+  if(lineupsRes.status==='fulfilled'){const d=lineupsRes.value;if(d.season===runtime.season&&typeof LineupBoard!=='undefined')LineupBoard.setDefaults(d.teams);}
 
   if(typeof PlayerIdentity!=='undefined')PlayerIdentity.setRegistry(meta.players||{});
   const opts = S.teams.map((t) => `<option>${esc(t)}</option>`).join("");
@@ -969,11 +971,8 @@ function bindStatic() {
   $("#evalBtn").onclick = evaluateCustom;
   $('#recentWeight').oninput = savePrefSettings;
   $('#fatigueLevel').onchange = setFatigueLevel;
-  $('#presetSave').onclick = saveSituation;
-  $('#presetLoad').onclick = () => applySituation(readPrefs().situation);
   $('#demoBtn').onclick = loadDemo;
   $('#replayFirstSuggest').onclick = openFirstSuggestion;
-  $('#presetClear').onclick = clearSituation;
   $("#myPitcher").onchange = syncRole;
   $$("#roleSeg button").forEach((b) => b.onclick = () => { S.starter = b.dataset.r === "1"; renderRole(); });
   $("#pitchCount").oninput = renderRole;
@@ -2103,9 +2102,9 @@ function scoreLegend(cur, key) {
   const now = cur && cur["價值分數"] != null ? `<span class="score-baseline">現任 ${N(cur[key])} · ${cur["價值分數"]} 分</span>` : "";
   return SCORE_LEGEND.replace("</div>", now + "</div>");
 }
-const SCORE_LEGEND = `<div class="score-legend"><span>價值分數（相對排名）：</span><span><i style="background:#1f8a55"></i>80+ 極佳</span>
-  <span><i style="background:#7fd9a8"></i>60–79 佳</span><span><i style="background:#999"></i>40–59 普通</span>
-  <span><i style="background:#f0b27a"></i>20–39 不利</span><span><i style="background:#c2412d"></i>&lt;20 很不利</span></div>`;
+const SCORE_LEGEND = `<div class="score-legend"><span>價值分數（相對排名）：</span><span><i class="legend-s5"></i>80+ 極佳</span>
+  <span><i class="legend-s4"></i>60–79 佳</span><span><i class="legend-s3"></i>40–59 普通</span>
+  <span><i class="legend-s2"></i>20–39 不利</span><span><i class="legend-s1"></i>&lt;20 很不利</span></div>`;
 
 function miniDiamond(b) {
   const f = (bit) => (b & bit ? "var(--warn)" : "var(--panel)");
