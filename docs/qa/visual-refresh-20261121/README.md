@@ -46,11 +46,21 @@
   - 主控台只有本機預期的 `api/meta` 404（本機靜態伺服器沒有 API）。
 - **離線 CI**：`data/rebas` 暫時改名後執行 `scripts/run_ci.py --require-no-raw`，17 個子檢查全部結束碼 0；跑完已改回原名，追蹤中的測試 fixture 沒有被改寫。
 
+## 11/25 後續：移除沒用到的 CSS、更新首圖
+
+- **移除沒用到的 CSS**：`style.css` 77 條規則整條移除、13 條規則只拿掉沒用到的選擇器，檔案由 111,365 字元降到約 105,000，涵蓋約 45 個 class／id（例如 `grid2`、`mix-row`、`pc-table-wrap`、`review-card`、`row-apply`、`substitution-note`、`#modeSeg`）。
+  - 判斷方式：class／id 名稱在 `docs/` 的 JS／HTML（不含資料與紀錄）、`tests/`、`server.py` 全文都找不到才算沒用到。
+  - 動態組名也算使用：`hand-${h}` 的 `hand-L`、`hand-R` 因此保留。
+  - 選擇器含 `:not()`、`:is()`、`:where()`、`:has()` 的規則一律保留，不判定。
+- **前後截圖比對**：以同一支腳本截取 28 張整頁圖（390 與 1280 px × 淺色與深色 × 空白、代打評估、換投評估、場上名單、設定換人、單日總覽、逐打席回放）。
+  - 移除前後尺寸全部相同，任何一個色版的差異最大為 10／255，只出現在主題切換按鈕邊緣與少數文字的抗鋸齒，沒有任何版面差異。
+  - 對照組：未改檔案連續截兩次，也有同等級的抗鋸齒差異。
+- **首圖更新**：README 的 `assets/readme/evaluation.png` 與網頁社群預覽圖 `docs/og-image.png` 改成新版頁首與評估畫面（1708×833，同一個示範情境）。
+
 ## 未處理（留待後續）
 
-- `style.css` 約 45 個 class 在 HTML／JS／測試中都找不到；系統深色的 `@media` 區塊因主題一定寫入 `data-theme` 而不會單獨生效。兩者都不影響畫面，刪除需要逐段比對壓縮過的規則，留待專門的 CSS 清理。
-- 隱藏的連投天數選單（`#myStreak`、牛棚每人的 `select.streak`）目前恆為 0，可能保留給日後功能，先不動。
-
+- 系統深色的 `@media` 區塊因主題一定寫入 `data-theme` 而不會單獨生效，但只占約 30 行且沒有可見影響，先不動。
+- 隱藏的連投天數選單（`#myStreak`、牛棚每人的 `select.streak`）目前恆為 0，但引擎與 API 的 `streaks` 欄位有測試並預留給日後功能；移除只省一個節點，不值得縮小契約，維持原樣。
 - `src/pitch_change.py` 的 `add_pa` 只有測試在用，正式的 `observations()` 另有一套計數規則。要統一會改變換投資料的計數結果或測試範圍，不屬於行為不變的整理。
 - 4 支 2026 研究稽核腳本（`audit_2026_replay_roster`、`audit_cross_game_bullpen_2026`、`audit_replay_model`、`evaluate_2026_holdout`）目前沒有文件引用，但時間較新，可能仍在使用，先保留。
 - 檔案雜湊、JSON 指紋等小函式在多支腳本中重複，合併只省幾行，且部分腳本會刻意載入別的版本，暫不合併。
