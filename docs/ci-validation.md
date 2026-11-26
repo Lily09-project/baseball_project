@@ -11,7 +11,11 @@ python -m pip install -r requirements.txt
 python scripts/run_ci.py
 ```
 
-這一層使用已匯出的資料與測試 fixture，包含 Python／前端 JS 語法、文件連結、靜態資產檢查、所有前端單元測試，以及來源清單、checkpoint、輸入契約與已發布回放 API 的 Python 測試。文件清單由 `scripts/check_repository.py` 的 `CURRENT_DOCS` 管理。外部網址另在發布驗收檢查。
+這一層使用已匯出的資料與測試 fixture，包含 Python／前端 JS 語法、文件連結、靜態資產檢查、所有前端單元測試，以及來源清單、checkpoint、輸入契約、已發布回放 API、下載腳本、本機 API 防護與預設先發名單的 Python 測試。
+
+`scripts/check_repository.py` 另會檢查已追蹤的檔案：`docs/` 會整個被 GitHub Pages 公開，所以其中不得有模型、原始資料、簡報或超過 5 MB 的檔案；`positions_2025.csv` 不得在任何位置被追蹤；追蹤的文字檔不得出現舊專案名稱或本機絕對路徑。
+
+Python 測試分兩份清單，都在 `scripts/run_ci.py`：`FIXTURE_TESTS` 在乾淨環境執行；`DATA_TESTS` 需要 2024–2026 原始資料（或本機才有的舊模型），在完整資料環境用 `python -m unittest discover -s tests` 跑。新增的測試檔若沒列入任一清單，CI 會中止，避免被悄悄漏掉。有測試被略過時 CI 會印出數量。文件清單由 `scripts/check_repository.py` 的 `CURRENT_DOCS` 管理。外部網址另在發布驗收檢查。
 
 真正無原始資料的 checkout 可加 `--require-no-raw`；如果 data/rebas 存在就拒絕，避免把本機有資料的通過誤稱乾淨 CI 證據。原始模型訓練與完整 Python／回放數值驗收不在這層。檢查日誌保存在忽略追蹤的 output/ci-validation；runner 以任何失敗的子程序結束碼作為整體結果，並保留開發者原有的歷史測試 fixture。
 

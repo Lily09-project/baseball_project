@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -12,13 +13,23 @@ FIXTURE_TESTS = ['test_runtime_config.py', 'test_training_source.py', 'test_batc
     'test_release_site.py', 'test_season_intake.py', 'test_incremental_intake.py', 'test_qa_boundaries.py',
     'test_repository_checks.py', 'test_pitching_change_rules.py', 'test_bullpen_simulation.py',
     'test_2026_model_improvements.py', 'test_published_replay_api.py', 'test_replay_fielding_evidence.py',
-    'test_fielding_plans.py']
+    'test_fielding_plans.py', 'test_closeout_batch.py', 'test_evaluation_resume.py',
+    'test_formal_identity.py', 'test_history_context.py', 'test_identity.py', 'test_identity_continuity.py',
+    'test_model_calibration.py', 'test_pitch_event_identity.py', 'test_player_input.py',
+    'test_player_numbers.py', 'test_recency_report.py', 'test_source_registry.py', 'test_timing_contract.py',
+    'test_download_data.py', 'test_server_http.py', 'test_pitch_change.py', 'test_default_lineups.py']
+# 需要 2024–2026 原始資料（或本機才有的舊模型）的測試：乾淨環境無法執行，在完整資料環境用
+# `python -m unittest discover -s tests` 跑。新測試檔必須列在其中一個清單，否則 CI 會中止，避免被悄悄漏掉。
+DATA_TESTS = ['test_decision_dates.py', 'test_feedback_settings.py', 'test_history_replay_api.py',
+    'test_replay_incumbent.py', 'test_replay_opening_actors.py', 'test_timing.py']
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--require-no-raw', action='store_true')
     args = parser.parse_args()
+    unlisted = sorted(p.name for p in (ROOT / 'tests').glob('test_*.py') if p.name not in FIXTURE_TESTS and p.name not in DATA_TESTS)
+    if unlisted: raise ValueError('tests/ 有測試檔沒有列入 FIXTURE_TESTS 或 DATA_TESTS：' + '、'.join(unlisted))
     if args.require_no_raw and (ROOT / 'data/rebas').exists(): raise ValueError('CI verification requires a checkout without raw Rebas inputs')
     output = ROOT / 'output/ci-validation' / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     output.mkdir(parents=True)
@@ -42,7 +53,9 @@ def main():
             (output/(label+'.log')).write_bytes(result.stdout)
             text = result.stdout.decode('utf8', errors='replace')
             print(f'[{label}] exit={result.returncode}\n'+(text if result.returncode else text[-2400:]), flush=True)
-            report['steps'].append({'name': label, 'exit_code': result.returncode})
+            skipped = sum(int(n) for n in re.findall(r'skipped=(\d+)', text))
+            if skipped and not result.returncode: print(f'  注意：{label} 有 {skipped} 項測試被略過（需要原始資料或其他本機檔案）', flush=True)
+            report['steps'].append({'name': label, 'exit_code': result.returncode, **({'skipped': skipped} if skipped else {})})
             (output/'summary.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf8')
             if result.returncode: return result.returncode
         report['passed'] = True

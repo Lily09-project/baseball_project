@@ -431,15 +431,22 @@ class Handler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        # 先把請求內容讀完再檢查：否則對方還在傳送時就回錯誤，連線可能被重設，使用者看不到錯誤訊息。
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            length = -1
+        raw = self.rfile.read(length) if 0 < length <= 1_000_000 else b""
+        if not 0 < length <= 1_000_000:
+            self.close_connection = True
         if not self._local_request():
             return
         try:
             if not (self.headers.get("Content-Type") or "").lower().startswith("application/json"):
                 raise ValueError("請以 application/json 提交")
-            n = int(self.headers.get("Content-Length", 0))
-            if not 0 < n <= 1_000_000:
+            if not raw:
                 raise ValueError("情境資料長度無效")
-            body = json.loads(self.rfile.read(n))
+            body = json.loads(raw)
         except (ValueError, UnicodeDecodeError, RecursionError):
             return self._send_json({"error":"請提交有效的 JSON 情境資料"}, 400)
         return self._handle_api(body)

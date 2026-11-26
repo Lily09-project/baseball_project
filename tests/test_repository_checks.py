@@ -3,6 +3,7 @@ from pathlib import Path
 import contextlib
 import io
 import json
+import subprocess
 from types import SimpleNamespace
 import sys
 import tempfile
@@ -10,7 +11,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from check_repository import check_links
+from check_repository import check_links, check_tracked_files
 import run_ci
 
 
@@ -52,6 +53,36 @@ class RepositoryCheckTests(unittest.TestCase):
             report=json.loads(next((root/'output/ci-validation').glob('*/summary.json')).read_text())
             self.assertNotIn('passed',report)
             self.assertEqual(report['steps'][0]['exit_code'],7)
+
+
+    def tracked(self, root, files):
+        subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
+        for name, data in files.items():
+            path = Path(root, name); path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data if isinstance(data, bytes) else data.encode('utf8'))
+        subprocess.run(['git', 'add', '-A'], cwd=root, check=True)
+        return check_tracked_files(root)
+
+    def test_tracked_files_reject_published_models_data_and_restricted_fielding_copies(self):
+        with tempfile.TemporaryDirectory() as folder:
+            result = self.tracked(folder, {'docs/ok.md': 'fine', 'docs/data/m.json': '{}', 'docs/leak.csv': 'a,b',
+                'docs/model.pkl': b'x', 'docs/big.json': b'0' * 5_000_001,
+                'data/cpbl/positions_2025.csv': 'ID', 'models/2026/weights.pkl': b'x'})
+            flagged = sorted(e['file'] for e in result['errors'])
+            self.assertEqual(flagged, ['data/cpbl/positions_2025.csv', 'docs/big.json', 'docs/leak.csv', 'docs/model.pkl'])
+
+    def test_tracked_files_reject_old_project_names_and_local_paths(self):
+        bad_path = 'C:' + chr(92) + 'Users' + chr(92) + 'someone'
+        with tempfile.TemporaryDirectory() as folder:
+            result = self.tracked(folder, {'README.md': 'see github.com/Da-Xiong-Chen/x', 'docs/a.md': 'file at ' + bad_path,
+                'src/ok.py': 'print(1)', 'docs/data/skipped.json': '{"p": "/Users/x"}'})
+            self.assertEqual(sorted(e['file'] for e in result['errors']), ['README.md', 'docs/a.md'])
+
+    def test_clean_repository_passes_and_non_git_folders_are_skipped(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(self.tracked(folder, {'README.md': 'hello', 'docs/index.html': '<p>hi</p>'})['errors'], [])
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertIsNone(check_tracked_files(folder)['tracked_files'])
 
 
 if __name__ == '__main__': unittest.main()
