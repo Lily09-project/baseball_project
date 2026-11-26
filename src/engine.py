@@ -1,6 +1,7 @@
 """決策引擎：給定一個比賽時點，評估「續打 vs 各代打人選」與「牛棚各投手」。"""
 from functools import lru_cache
 
+import threading
 import pandas as pd
 
 from fatigue import outlook, pitch_count_before
@@ -128,15 +129,24 @@ def streak_penalty(streak, sit):
     return 0.0
 
 
-_pool_cache = {}
+_pool_cache = {}  # 沒有 __dict__ 的物件才用的備援
+_pool_lock = threading.Lock()
 
 
-def _cached(key, fn):
-    if key not in _pool_cache:
-        if len(_pool_cache) > 500:
-            _pool_cache.clear()
-        _pool_cache[key] = fn()
-    return _pool_cache[key]
+def _cached(owner, key, fn):
+    """比較池快取掛在模型物件上：模型被回收時快取一起消失，不會因 id() 被重用而命中別的模型的結果。
+    計算在鎖外進行；多執行緒同時清空與讀取也不會出錯。"""
+    store = owner.__dict__.setdefault("_pool_cache", {}) if hasattr(owner, "__dict__") else _pool_cache
+    with _pool_lock:
+        hit = store.get(key)
+    if hit is not None:
+        return hit
+    value = fn()
+    with _pool_lock:
+        if len(store) > 500:
+            store.clear()
+        store[key] = value
+    return value
 
 
 def hitter_pool_rels(m, ml, pitcher, phand, recent_w=0.0):
@@ -144,7 +154,7 @@ def hitter_pool_rels(m, ml, pitcher, phand, recent_w=0.0):
     names = hitter_pool(cutoff)
     if not names:
         return np.array([])
-    return _cached((id(m), id(ml), "H", pitcher, recent_w),
+    return _cached(m, (id(ml), "H", pitcher, phand, recent_w),
                    lambda: ensemble_rel(m, ml, names, [bat_hand(n, phand, cutoff) for n in names], pitcher, recent_w)[0])
 
 
@@ -152,7 +162,7 @@ def reliever_pool_runs(m, ml, batters, recent_w=0.0):
     names = reliever_pool(str(m.cutoff.date()))
     if not names:
         return np.array([])
-    return _cached((id(m), id(ml), "P", tuple(batters), recent_w),
+    return _cached(m, (id(ml), "P", tuple(batters), recent_w),
                    lambda: ensemble_runs(m, ml, names, batters, recent_w=recent_w))
 
 

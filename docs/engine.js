@@ -271,7 +271,7 @@ const Engine = (() => {
     b={...b};
     // 與 server.py validate_evaluation 相同的範圍檢查；不合法時報錯，不悄悄退回聯盟平均
     const whole = (v) => { const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v; return typeof n === 'number' && Number.isInteger(n) ? n : NaN; };
-    for (const [key, low, high] of [['inning', 1, 12], ['outs', 0, 2], ['bases', 0, 7], ['bat_score', 0, Infinity], ['fld_score', 0, Infinity]]) {
+    for (const [key, low, high] of [['inning', 1, 12], ['outs', 0, 2], ['bases', 0, 7], ['bat_score', 0, 99], ['fld_score', 0, 99]]) {
       const n = whole(b[key]);
       if (!(n >= low && n <= high)) throw new Error(key + ' 須為有效範圍內的整數');
       b[key] = n;

@@ -58,3 +58,16 @@ test('starter accepts only boolean or omitted/null and preserves explicit reliev
  for(const starter of [null,undefined])assert.equal(typeof e.evaluate({...body,starter}).situation.starter,'boolean');
  const reliever=e.evaluate({...body,starter:false});assert.equal(reliever.bullpen.rows[0].疲勞調整,0);
 });
+test('situations outside the valid range are rejected, never silently scored with league averages',async()=>{
+ const e=await engine(path.join(root,'docs/engine.js'),path.join(root,'docs/data/model.json'));
+ const teams=e.model().teams,bat=teams[0],fld=teams[1],mine=e.model().rosters[bat],opp=e.model().rosters[fld];
+ const body={inning:7,half:'home',outs:1,bases:0,bat_score:1,fld_score:1,pitcher:opp.pitchers[0].name,due:mine.hitters[0].name,due_pos:'DH',bench:[],bat_team:bat,fld_team:fld,next_batters:mine.hitters.slice(0,3).map(p=>p.name),pen:[],pitch_count:40};
+ assert.ok(e.evaluate(body));
+ assert.ok(e.evaluate({...body,inning:'7',pitch_count:'40'}),'numeric strings from form fields still work');
+ const bad=[{half:'HOME'},{half:'xx'},{inning:0},{inning:13},{inning:7.5},{inning:'abc'},{outs:3},{outs:-1},{bases:8},{bases:1.5},
+   {bat_score:-1},{bat_score:100},{fld_score:1.5},{pitch_count:'abc'},{pitch_count:12.5},{pitch_count:161},{pitch_count:-1},{streaks:{[opp.pitchers[0].name]:1.5}},{streaks:{[opp.pitchers[0].name]:11}}];
+ for(const change of bad)assert.throws(()=>e.evaluate({...body,...change}),/須|無效|介於/,JSON.stringify(change));
+ assert.throws(()=>e.detail('constructor',opp.pitchers[0].name),/無法辨識/);
+ assert.throws(()=>e.detail(mine.hitters[0].name,'nobody'),/無法辨識/);
+ assert.ok(e.detail(mine.hitters[0].name,opp.pitchers[0].name).cells.length>0);
+});

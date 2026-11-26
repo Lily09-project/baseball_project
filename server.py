@@ -8,6 +8,7 @@ import math
 import os
 import sys
 import threading
+from collections import OrderedDict
 import traceback
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,15 +34,28 @@ from runtime_config import settings
 PORT = int(os.environ.get("PORT", 8000))
 WEB = os.environ.get('BASEBALL_WEB_ROOT',os.path.join(ROOT,"docs"))
 _lock = threading.Lock()
-_models = {}
+_models = OrderedDict()
+_fit_gates = {}
+MAX_MODELS = 12  # 歷史日期的模型最多快取這麼多個，超過就淘汰最久沒用的（目前模型不淘汰）
 FULL = settings().cutoff  # exclusive data boundary
 
 
 def model_for(date_str):
     with _lock:
-        if date_str not in _models:
-            _models[date_str] = fit(date_str, season=settings().season if date_str == FULL else None)
-        return _models[date_str]
+        if date_str in _models:
+            _models.move_to_end(date_str)
+            return _models[date_str]
+        gate = _fit_gates.setdefault(date_str, threading.Lock())
+    with gate:  # 同一日期只擬合一次；擬合期間不擋住其他請求
+        with _lock:
+            if date_str in _models:
+                return _models[date_str]
+        fitted = fit(date_str, season=settings().season if date_str == FULL else None)
+        with _lock:
+            _models[date_str] = fitted
+            for old in [k for k in _models if k != FULL][:max(0, len(_models) - MAX_MODELS)]:
+                _models.pop(old, None)
+        return fitted
 
 
 def clean(o):
@@ -218,7 +232,7 @@ def validate_evaluation(body):
     if body.get('date') not in (None, FULL):
         raise ValueError('自訂情境使用目前模型日期；歷史情境請用回放')
     for key, low, high in [('inning', 1, 12), ('outs', 0, 2), ('bases', 0, 7),
-                           ('bat_score', 0, None), ('fld_score', 0, None)]:
+                           ('bat_score', 0, 99), ('fld_score', 0, 99)]:
         value = body.get(key)
         if type(value) is not int or value < low or (high is not None and value > high):
             raise ValueError(f'{key} 須為有效範圍內的整數')
@@ -229,6 +243,13 @@ def validate_evaluation(body):
         raise ValueError('本場球數須介於 0 至 160')
     if body.get('half') not in ('away', 'home'):
         raise ValueError('局別無效')
+    for key in ('bench', 'pen', 'next_batters', 'streaks', 'lineup_positions'):
+        # 先擋掉過長或重複的輸入，避免逐筆解析球員名稱浪費運算
+        value = body.get(key)
+        if isinstance(value, (list, dict)) and len(value) > 60:
+            raise ValueError(f'{key} 項目過多')
+        if isinstance(value, list) and all(isinstance(v, str) for v in value) and len(set(value)) != len(value):
+            raise ValueError(f'{key} 名單無效')
     r = rosters()
     bat, fld = body.get('bat_team'), body.get('fld_team')
     if not isinstance(bat, str) or not isinstance(fld, str) or bat not in r or fld not in r or bat == fld:
@@ -350,6 +371,8 @@ def api(path, qs, body):
     if path == "/api/detail":
         date = qs.get("date", [FULL])[0]
         cutoff = date if date != 'custom' else FULL
+        if cutoff != FULL and cutoff not in settings().replay_cutoffs and cutoff != settings().history_date:
+            raise ValueError('不支援的模型日期')
         batter = resolve_player(qs['batter'][0],cutoff=cutoff,team=qs.get('bat_team',[None])[0],role='B')
         pitcher = resolve_player(qs['pitcher'][0],cutoff=cutoff,team=qs.get('fld_team',[None])[0],role='P')
         m = model_for(cutoff)
@@ -372,26 +395,52 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _local_request(self):
+        """只服務本機頁面：擋掉 DNS rebinding 與其他網站發來的請求。"""
+        host = (self.headers.get("Host") or "").lower()
+        if host.rsplit(":", 1)[0].strip("[]") not in ("127.0.0.1", "localhost", "::1"):
+            self._send_json({"error": "只接受本機位址的請求"}, 421)
+            return False
+        if self.headers.get("Sec-Fetch-Site") == "cross-site":
+            self._send_json({"error": "不接受其他網站發來的請求"}, 403)
+            return False
+        origin = self.headers.get("Origin")
+        if origin and origin.split("://", 1)[-1].lower() != host:
+            self._send_json({"error": "不接受其他網站發來的請求"}, 403)
+            return False
+        return True
+
     def _handle_api(self, body=None):
         u = urlparse(self.path)
         try:
             self._send_json(api(u.path, parse_qs(u.query), body))
-        except Exception as e:  # noqa: BLE001
+        except ValueError as e:  # 驗證訊息本身就是給使用者看的中文
+            self._send_json(dict(error=str(e)), 400)
+        except FileNotFoundError:
             traceback.print_exc()
-            self._send_json(dict(error=f"{type(e).__name__}: {e}"), 400)
+            self._send_json(dict(error="伺服器缺少必要的模型或資料檔，請依 README 準備資料後重新啟動"), 503)
+        except Exception:  # noqa: BLE001  細節只寫在伺服器端，不回傳路徑或內部名稱
+            traceback.print_exc()
+            self._send_json(dict(error="請求內容不完整或格式不符"), 400)
 
     def do_GET(self):
         if self.path.startswith("/api/"):
+            if not self._local_request():
+                return
             return self._handle_api()
         return super().do_GET()
 
     def do_POST(self):
+        if not self._local_request():
+            return
         try:
+            if not (self.headers.get("Content-Type") or "").lower().startswith("application/json"):
+                raise ValueError("請以 application/json 提交")
             n = int(self.headers.get("Content-Length", 0))
             if not 0 < n <= 1_000_000:
                 raise ValueError("情境資料長度無效")
             body = json.loads(self.rfile.read(n))
-        except (ValueError, UnicodeDecodeError):
+        except (ValueError, UnicodeDecodeError, RecursionError):
             return self._send_json({"error":"請提交有效的 JSON 情境資料"}, 400)
         return self._handle_api(body)
 

@@ -7,6 +7,7 @@ This is historical fielding evidence, not registration or current eligibility.
 from collections import defaultdict
 from functools import lru_cache
 import hashlib
+import warnings
 from pathlib import Path
 
 import pandas as pd
@@ -36,6 +37,10 @@ def fielding_registry(cutoff=None):
     inputs.extend(('ldkrsi',y,weights[y],Path(DATA)/f'ldkrsi/fieldings_{y}.csv')
                   for y in (2024,2023) if y<year and y in weights)
     rows=[];hashes={}
+    missing=[f'{namespace}:{season}（{path.name}）' for namespace,season,_,path in inputs if not path.exists()]
+    if missing:
+        # 缺檔時守位判斷只用其餘來源，部分球員會變成「待確認」；不要悄悄略過
+        warnings.warn('守位來源缺檔，守位判斷改用較少的證據：'+'、'.join(missing),RuntimeWarning,stacklevel=2)
     for namespace,season,weight,path in inputs:
         if not path.exists():continue
         hashes[f'{namespace}:{season}']=hashlib.sha256(path.read_bytes()).hexdigest()

@@ -18,10 +18,18 @@ REBAS = {
 LDKRSI = "https://raw.githubusercontent.com/ldkrsi/cpbl-opendata/master/"
 
 
-def fetch(url):
+def fetch(url, timeout=120):
     print("下載", url)
-    with urllib.request.urlopen(url) as r:
+    with urllib.request.urlopen(url, timeout=timeout) as r:
         return r.read()
+
+
+def write_atomic(path, data):
+    """先寫暫存檔再取代：下載或寫入中途失敗時，不會留下被截斷的檔案。"""
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    os.replace(tmp, path)
 
 
 def main():
@@ -29,20 +37,25 @@ def main():
         out = os.path.join(ROOT, "data", "rebas", year)
         os.makedirs(out, exist_ok=True)
         z = zipfile.ZipFile(io.BytesIO(fetch(url)))
-        n = 0
-        for name in z.namelist():
-            base = os.path.basename(name)
-            if re.search(r"-G\d+\.json$", base):  # 只取逐場檔，不取合併檔
-                with open(os.path.join(out, base), "wb") as f:
-                    f.write(z.read(name))
-                n += 1
-        print(f"  {year}：{n} 場")
+        games = [(os.path.basename(name), name) for name in z.namelist()
+                 if re.search(r"-G\d+\.json$", os.path.basename(name))]  # 只取逐場檔，不取合併檔
+        if not games:
+            # 壓縮檔改版或內容不對時直接中止，不要悄悄沿用舊資料
+            raise SystemExit(f"{year}：壓縮檔內找不到逐場檔，已中止；既有資料未更動。")
+        for base, name in games:
+            write_atomic(os.path.join(out, base), z.read(name))
+        print(f"  {year}：{len(games)} 場")
 
     out = os.path.join(ROOT, "data", "ldkrsi")
     os.makedirs(out, exist_ok=True)
-    for y in (2022, 2023, 2024):
-        open(os.path.join(out, f"fieldings_{y}.csv"), "wb").write(fetch(f"{LDKRSI}CPBL/fieldings/{y}.csv"))
-    open(os.path.join(out, "LICENSE"), "wb").write(fetch(LDKRSI + "LICENSE"))
+    # 先全部下載成功，再寫檔；失敗時既有的守位檔保持原樣
+    files = {f"fieldings_{y}.csv": fetch(f"{LDKRSI}CPBL/fieldings/{y}.csv") for y in (2022, 2023, 2024)}
+    files["LICENSE"] = fetch(LDKRSI + "LICENSE")
+    for name, data in files.items():
+        target = os.path.join(out, name)
+        if os.path.exists(target) and open(target, "rb").read() == data:
+            continue  # 內容相同就不改寫（LICENSE 已被追蹤）
+        write_atomic(target, data)
     export_fielding_2026()
     print("完成。若有權使用 2025 守位資料，可另放入 data/cpbl/positions_2025.csv，來源見「資料來源.md」。")
 
