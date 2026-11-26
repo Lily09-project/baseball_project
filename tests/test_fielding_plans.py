@@ -35,6 +35,26 @@ class FieldingPlanTests(unittest.TestCase):
         self.assertIsNone(fielding_rearrangement(self.positions,'3B','1B','2025-09-20'))
         self.assertIsNone(fielding_rearrangement(self.positions,'DH','New','2025-09-20'))
         self.assertIsNone(fielding_rearrangement(self.positions,'3B','New',None))
+    def test_published_plans_are_consistent_with_their_replay_files(self):
+        """不需原始資料：每個已發布日期的守位計畫都綁定該日索引，且只針對『守備待確認』的候選。"""
+        root=Path(__file__).resolve().parents[1]
+        base=Path(os.environ.get('BASEBALL_STATIC_OUT',root/'docs/data'))/'replay'
+        days=sorted(base.glob('day-*/fielding-plans.json'))
+        self.assertTrue(days,'沒有任何已發布的守位計畫檔')
+        for plans_file in days:
+            day=plans_file.parent
+            data=json.loads(plans_file.read_text(encoding='utf8'));index=json.loads((day/'index.json').read_text(encoding='utf8'))
+            self.assertEqual(hashlib.sha256((day/'index.json').read_bytes()).hexdigest(),data['replay_index_sha256'],day.name)
+            self.assertEqual(data['date'],index['date'],day.name)
+            self.assertEqual(len(data['plans']),data['counts']['pas_with_plan'],day.name)
+            for pid,choices in data['plans'].items():
+                self.assertIn(pid,index['files'],f'{day.name}：{pid} 不在回放索引')
+                candidates=json.loads((day/index['files'][pid]).read_text(encoding='utf8'))['ph']['candidates']
+                for name in choices:
+                    match=[x for x in candidates if x['球員']==name]
+                    self.assertEqual(len(match),1,f'{day.name} {pid}：候選 {name}')
+                    self.assertEqual(match[0]['守備'],'unknown',f'{day.name} {pid}：{name} 已有明確守備結論，不該有重排計畫')
+
     def test_exported_plans_reproduce_from_prior_evidence_without_changing_eligibility(self):
         root=Path(__file__).resolve().parents[1]
         from engine import situation

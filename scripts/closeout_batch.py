@@ -1,4 +1,9 @@
-"""Seal new batches explicitly; read-only verification; journaled promotion."""
+"""Seal new batches explicitly; read-only verification; journaled promotion.
+
+注意：本腳本的檢查常數綁定 2024–2025 的原封版（timing-2025.json、day-2025-09-20、對應的檔案數量），
+對目前的 2026 站台執行 --verify-live 會因「Batch file set changed」失敗，這是預期行為，不是站台壞掉。
+現行 2026 批次請依 docs/技術細節.md 8.4–8.5 與 scripts/prepare_site.py 驗證。
+"""
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,sys
 ROOT=Path(__file__).resolve().parents[1]

@@ -59,12 +59,12 @@ class HandlerTests(unittest.TestCase):
             self.assertEqual(s.request('POST', '/api/evaluate', '{}', JSON)[0], 200)  # 伺服器仍正常
 
     def test_errors_do_not_leak_paths_or_python_internals(self):
-        secret = r'C:\Users\someone\private\models\x.pkl'
+        secret = 'X:/secret-dir/models/x.pkl'
         with RunningServer() as s:
             with patch.object(server, 'api', side_effect=FileNotFoundError(secret)):
                 status, data = s.request('POST', '/api/evaluate', '{}', JSON)
                 self.assertEqual(status, 503)
-                self.assertNotIn('someone', json.dumps(data, ensure_ascii=False))
+                self.assertNotIn('secret-dir', json.dumps(data, ensure_ascii=False))
             with patch.object(server, 'api', side_effect=KeyError('team')):
                 status, data = s.request('GET', '/api/team')
                 self.assertEqual(status, 400)

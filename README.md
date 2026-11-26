@@ -16,9 +16,9 @@
 | 程式碼審查與修正 | [回放連結與本機 API](docs/project-closeout-20261116.md) · [11/6 整合審查](docs/qa/release-foundation-20261106/README.md) |
 | 後續模型及資料工作 | [季中迭代的驗收方法](docs/qa/season-iteration-2026/README.md) · [資料來源與守位](資料來源.md) |
 | 最新模型實驗 | [2026 換投時機回測](docs/qa/timing-2026/README.md) · [疲勞調整與勝率校準](docs/qa/website-roadmap-20261115/README.md) · [季中迭代](docs/qa/season-iteration-2026/README.md) |
-| 模型與身份基準 | 10/25 v5 整合驗收 |
+| 模型與身份基準 | [v5 訓練指南](docs/training-v5.md) · [三季資料驗收](docs/qa/data-2026-20261114/README.md) |
 
-**版本紀錄**　已完成 8 個比賽日回放、球隊調度與 2026 模型驗收，並陸續補上候選、接守與球隊名單修正，以及換人規則、情境載入及退場紀錄重置。可依[本機執行](#本機執行)預覽，上線狀態見[部署紀錄](https://github.com/Lily09-project/baseball_project/deployments)。
+**版本紀錄**　已完成 8 個比賽日回放、球隊調度與 2026 模型驗收，並陸續補上候選、接守與球隊名單修正，以及換人規則、情境載入及退場紀錄重置。可依[本機執行](#本機執行)預覽，上線狀態見[部署紀錄](https://github.com/Lily09-project/baseball_project/actions)。
 
 | 項目 | 內容 |
 |---|---|

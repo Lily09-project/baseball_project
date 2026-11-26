@@ -40,8 +40,16 @@ test('same exported parameters preserve original calculation formulas across 18 
     }
     results.push(a);
   }
-  fs.mkdirSync(path.join(root,'tests/fixtures'),{recursive:true});
-  fs.writeFileSync(path.join(root,'tests/fixtures/qa_scenarios.json'),JSON.stringify(fixtures,null,2));
+  // 追蹤中的情境檔只在明確要求時才重新產生；平時改為檢查它仍與目前模型一致，
+  // 避免測試改寫追蹤檔，或與同時讀取它的 test_app_state 互相干擾。
+  const fixturePath=path.join(root,'tests/fixtures/qa_scenarios.json'),generated=JSON.stringify(fixtures,null,2);
+  if(process.env.BASEBALL_WRITE_FIXTURES==='1'){
+    fs.mkdirSync(path.dirname(fixturePath),{recursive:true});
+    fs.writeFileSync(fixturePath,generated);
+  } else {
+    const saved=fs.readFileSync(fixturePath,'utf8').split(String.fromCharCode(13)).join('');
+    assert.equal(saved,generated,'tests/fixtures/qa_scenarios.json 與目前模型的名單不同；確認後以 BASEBALL_WRITE_FIXTURES=1 重新產生');
+  }
   const reportDir=process.env.BASEBALL_REPORT_OUT||path.join(root,'output/qa');
   fs.mkdirSync(reportDir,{recursive:true});
   fs.writeFileSync(path.join(reportDir,'engine_regression.json'),JSON.stringify({scenarios:fixtures.length,same_parameter_formula_match:true,training_version:after.model().training_version,results},null,2));
