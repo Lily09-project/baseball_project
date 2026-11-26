@@ -5,7 +5,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'scripts'),str(ROOT/'src')]
 from prepare_site import inspect_site,read_json
 
-def digest(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+from training_source import digest
 
 def scoped(p):
     p=Path(p).resolve()

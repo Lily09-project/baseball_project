@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from training_source import digest as sha
 from pilot_ensemble_recency import (
     ROOT, SPEC as PILOT, active_roster, bat_hand, batter_variant, context, fit, load,
     mlmodel, np, pd, write,
@@ -27,10 +28,6 @@ PROTOCOL = {
     'independent_holdout_available': False,
     'adoption': False,
 }
-
-
-def sha(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def fingerprints():

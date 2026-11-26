@@ -6,10 +6,12 @@ from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
-from pitch_change import Settings, add_pa, appearance, compare, observations, pitch_change
+from pitch_change import Settings, add_pa, appearance, compare, observations, pitch_change, replay_counts
 
 
 class PitchChangeTests(unittest.TestCase):
@@ -87,6 +89,36 @@ class PitchChangeTests(unittest.TestCase):
         add_pa(a, dict(batterHand='L', events=[dict(type='PITCH', pitchCode='H', pitchType='FF', pitcherName='Other')]))
         self.assertEqual(a['counts'].sum(), 0)
         self.assertEqual(a['excluded']['pitcher_mismatch'], 1)
+
+    def test_replay_counts_follow_the_pitch_codes(self):
+        self.assertEqual(replay_counts(['B', 'S', 'H']), [(0, 0), (1, 0), (1, 1)])
+        self.assertEqual(replay_counts(['S', 'S', 'FOUL_BUNT']), [(0, 0), (0, 1), (0, 2)])
+        self.assertEqual(replay_counts([]), [])
+        # Impossible sequences are rejected as a whole, never clipped.
+        self.assertIsNone(replay_counts(['B'] * 5))
+        self.assertIsNone(replay_counts(['H', 'B']))
+        self.assertIsNone(replay_counts(['NOT_A_CODE']))
+
+    def test_observations_applies_the_same_rules_as_add_pa(self):
+        """The production path reads the pitch table; check it with a small synthetic table."""
+        def pitch(pa, j, code, balls, strikes, hand='L', pitcher='P'):
+            return dict(pa_id=pa, j=j, code=code, balls=balls, strikes=strikes, pitcher=pitcher,
+                        game='g1', date=pd.Timestamp('2025-04-01'), bhand=hand, ptype='FF')
+        rows = [pitch('ok', 0, 'B', 0, 0), pitch('ok', 1, 'S', 1, 0), pitch('ok', 2, 'H', 1, 1),
+                *[pitch('long', i, 'B', 0, 0) for i in range(5)],        # impossible count
+                pitch('wrong', 0, 'S', 1, 0),                            # recorded count disagrees
+                pitch('switch', 0, 'S', 0, 0, hand='S')]                 # unknown batter hand
+        boxes = pd.DataFrame([dict(role='P', game='g1', name='P', date=pd.Timestamp('2025-04-01'))])
+        observations.cache_clear()
+        try:
+            with patch('load.load', return_value=(None, pd.DataFrame(rows), boxes)):
+                (a,) = observations()['P']
+        finally:
+            observations.cache_clear()
+        self.assertEqual(a['counts'].sum(), 3)
+        self.assertEqual((a['counts'][0, 0], a['counts'][3, 0], a['counts'][4, 0]), (1, 1, 1))
+        self.assertEqual(a['excluded']['ambiguous_count'], 6)
+        self.assertEqual(a['excluded']['unknown_hand'], 1)
 
     def test_empty_history_has_nulls_not_zero_estimates(self):
         d = compare([], 'P', 2025, '2025-01-01')

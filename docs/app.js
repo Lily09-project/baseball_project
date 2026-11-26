@@ -332,15 +332,7 @@ async function loadDemo() {
   status.textContent='8 局上 統一 1：2 富邦，一出局二壘有人';
   await evaluateCustom();
 }
-/* 連投標記：今天之前連續登板天數（0／1／2 以上），只用在自訂情境的換投評估 */
-function streakMarks() {
-  const out = {};
-  const cur = $('#myPitcher')?.value, v = +($('#myStreak')?.value || 0);
-  if (cur && v) out[cur] = v;
-  $$('#penList select.streak').forEach(s => { if (+s.value) out[s.dataset.streak] = +s.value; });
-  return out;
-}
-const STREAK_SELECT = name => `<select hidden class="streak" data-streak="${esc(name)}" aria-label="${N(name)} 今天之前連續登板天數"><option value="0">未連投</option><option value="1">連投第 2 天</option><option value="2">連投第 3 天+</option></select>`;
+// 連投天數目前不開放設定；引擎與 API 的 streaks 欄位保留，傳空物件代表沒有連投
 
 /* ---------------- 評估原因：每位球員 1–2 項簡單說明 ---------------- */
 const HZ = h => (h === 'L' ? '左' : h === 'R' ? '右' : '兩');
@@ -1106,8 +1098,7 @@ async function refreshCustom() {
     if(def&&my.hitters.some(h=>h.name===def.slots[0].name))$('#dueBatter').value=def.slots[0].name;else $('#dueBatter').selectedIndex=0;
     autoPos();$('#benchFilter').value='';renderBench(true);syncRole();
     $('#penFilter').value='';$('#penList').hidden=true;
-    $('#penList').innerHTML=my.pitchers.map(p=>`<label><input type="checkbox" value="${esc(p.name)}" ${p.role==='後援'?'checked':''}>${N(p.name)}${STREAK_SELECT(p.name)}<span class="meta">${handChip(p.hand)}<span class="chip">${p.role}</span></span></label>`).join('');
-    $('#myStreak').value='0';
+    $('#penList').innerHTML=my.pitchers.map(p=>`<label><input type="checkbox" value="${esc(p.name)}" ${p.role==='後援'?'checked':''}>${N(p.name)}<span class="meta">${handChip(p.hand)}<span class="chip">${p.role}</span></span></label>`).join('');
     if(typeof PitcherGroups!=='undefined')groupControl=PitcherGroups.mount({element:$('#pitcherGroups'),list:$('#penList'),availability:$('#penAvailability'),team:myName,pitchers:my.pitchers,current:()=>$('#myPitcher').value,unavailable:()=>[...(ownLineup()?.slots.map(s=>s.name)||[]),...(ownLineup()?.unavailable||[]),...(ownLineup()?[]:generalExited())],changed:()=>invalidateCustom()});
   }
   loadedTeams={my:myName,opp:oppName};
@@ -1258,7 +1249,7 @@ async function evaluateCustom() {
     body = { inning: S.inning, half: S.half, outs: S.outs, bases: S.bases, bat_score: oppScore, fld_score: myScore,
       pitcher: $("#myPitcher").value, due: nb[0], due_pos: "DH", bench: [], bat_team: opp, fld_team: my,
       next_batters: nb, pen: selectedBullpen(),
-      pitch_count: +$("#pitchCount").value || 0, starter: S.starter, ...prefSettings(), streaks: streakMarks() };
+      pitch_count: +$("#pitchCount").value || 0, starter: S.starter, ...prefSettings(), streaks: {} };
   }
   await run(() => api("api/evaluate", body), S.view);
 }

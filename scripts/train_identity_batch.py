@@ -10,15 +10,11 @@ import pickle
 import subprocess
 import sys
 import time
-from training_source import verify_source, create_manifest, snapshot, fingerprint
+from training_source import verify_source, create_manifest, snapshot, fingerprint, digest
 
 ROOT=Path(__file__).resolve().parents[1]
 CUTOFFS=[f'2025-{month:02d}-01' for month in range(3,11)]+['2026-01-01']
 SPEC=ROOT/'config/training-v5.json'
-
-
-def digest(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def atomic_json(path,data):

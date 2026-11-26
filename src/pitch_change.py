@@ -44,8 +44,37 @@ def appearance(game, day, pitcher):
                 excluded=Counter())
 
 
+LEGAL_CODES = STRIKE_CODES | FOUL_CODES | {'B', 'H', 'BUNT'}
+
+
+def replay_counts(codes):
+    """Balls and strikes before each pitch of one PA, replayed from the pitch codes.
+
+    Returns None when the sequence is impossible (count above 3-2, unknown code, or a ball
+    in play before the last pitch), so callers reject the whole PA instead of clipping it.
+    """
+    balls = strikes = 0
+    states = []
+    for j, code in enumerate(codes):
+        if balls > 3 or strikes > 2 or code not in LEGAL_CODES:
+            return None
+        states.append((balls, strikes))
+        if code in {'H', 'BUNT'} and j != len(codes) - 1:
+            return None
+        if code == 'B':
+            balls += 1
+        elif code in STRIKE_CODES or (code == 'FOUL_BUNT' and strikes == 2):
+            strikes += 1
+        elif code in FOUL_CODES and strikes < 2:
+            strikes += 1
+    return states
+
+
 def add_pa(a, pa):
-    """Reject an ambiguous PA rather than silently clipping impossible counts."""
+    """Add one PA given as raw event dicts. Rejects an ambiguous PA rather than clipping counts.
+
+    `observations()` is the production path (pitch table); both share `replay_counts`.
+    """
     events = [e for e in pa.get('events', []) if e.get('type') == 'PITCH']
     if any(e.get('pitcherName', a['pitcher']) != a['pitcher'] for e in events):
         a['excluded']['pitcher_mismatch'] += len(events)
@@ -55,28 +84,16 @@ def add_pa(a, pa):
         a['excluded']['unknown_hand'] += len(events)
         return
     hi = ('L', 'R').index(hand)
-    balls = strikes = 0
-    rows = []
-    for j, e in enumerate(events):
-        code = e.get('pitchCode')
-        if balls > 3 or strikes > 2 or code not in STRIKE_CODES | FOUL_CODES | {'B', 'H', 'BUNT'}:
-            a['excluded']['ambiguous_count'] += len(events)
-            return
-        rows.append((hi * 12 + balls * 3 + strikes, PITCH_GROUP.get(e.get('pitchType'))))
-        if code == 'B':
-            balls += 1
-        elif code in STRIKE_CODES or (code == 'FOUL_BUNT' and strikes == 2):
-            strikes += 1
-        elif code in FOUL_CODES and strikes < 2:
-            strikes += 1
-        if code in {'H', 'BUNT'} and j != len(events) - 1:
-            a['excluded']['ambiguous_count'] += len(events)
-            return
-    for s, group in rows:
+    states = replay_counts([e.get('pitchCode') for e in events])
+    if states is None:
+        a['excluded']['ambiguous_count'] += len(events)
+        return
+    for (balls, strikes), e in zip(states, events):
+        group = PITCH_GROUP.get(e.get('pitchType'))
         if group is None:
             a['unknown'][hi] += 1
         else:
-            a['counts'][s, GROUPS.index(group)] += 1
+            a['counts'][hi * 12 + balls * 3 + strikes, GROUPS.index(group)] += 1
 
 
 @lru_cache(maxsize=1)
@@ -90,18 +107,9 @@ def observations():
     ordered=pitches.sort_values(['pa_id','j']).itertuples(index=False)
     for _, events in groupby(ordered,key=lambda row:row.pa_id):
         rows = list(events)
-        balls = strikes = 0
-        valid = True
-        for j, row in enumerate(rows):
-            if balls > 3 or strikes > 2 or row.code not in STRIKE_CODES | FOUL_CODES | {'B', 'H', 'BUNT'}:
-                valid = False; break
-            if row.balls != balls or row.strikes != strikes:
-                valid = False; break
-            if row.code in {'H', 'BUNT'} and j != len(rows)-1:
-                valid = False; break
-            if row.code == 'B': balls += 1
-            elif row.code in STRIKE_CODES or (row.code == 'FOUL_BUNT' and strikes == 2): strikes += 1
-            elif row.code in FOUL_CODES and strikes < 2: strikes += 1
+        states = replay_counts([row.code for row in rows])
+        valid = states is not None and all(
+            (row.balls, row.strikes) == state for row, state in zip(rows, states))
         for row in rows:
             if not isinstance(row.pitcher, str): continue
             token=(row.game,row.pitcher)
