@@ -57,11 +57,20 @@
   - 對照組：未改檔案連續截兩次，也有同等級的抗鋸齒差異。
 - **首圖更新**：README 的 `assets/readme/evaluation.png` 與網頁社群預覽圖 `docs/og-image.png` 改成新版頁首與評估畫面（1708×833，同一個示範情境）。
 
+## 11/26 後續：配球計數規則共用、移除重複與恆空的程式
+
+- **配球計數規則共用**：`src/pitch_change.py` 新增 `replay_counts()`，由逐球代碼重播球數並拒絕不可能的序列。原本網站實際使用的 `observations()` 與只有測試在用的 `add_pa()` 各寫一套同樣的判斷，測試驗的不是網站實際跑的那段；現在兩邊共用同一個函式。
+  - 重構前後以 `observations()` 對 2024–2026 原始資料的完整輸出（219 位投手、6,217 場登板的球數、未知球種、排除原因）各算一次 SHA-256，兩次完全相同（`62b42d5f…`）。
+  - 新增測試：`replay_counts` 的合法與不可能序列、以及用一小張合成逐球表直接測 `observations()`（合法打席、五個壞球、紀錄球數不符、未知打擊方向）。
+  - 仍有的差異：`add_pa` 逐打席處理原始事件並檢查中途換投手，`observations()` 逐球處理並多比對資料表本身記錄的球數，這兩點是兩條路徑的資料來源不同，保留。
+- **系統深色的重複 CSS**：`theme.js` 一律把 `data-theme` 設為 `light` 或 `dark`，所以 `:root:not([data-theme="light"])` 只在深色時成立，與 `:root[data-theme="dark"]` 完全重複。移除 7 個 `@media (prefers-color-scheme: dark)` 區塊（共 31 行）。網站仍預設淺色、不跟系統。
+- **恆空的連投天數選單**：畫面上從來看不到也改不了，`streaks` 永遠是空物件。移除牛棚每位投手的隱藏選單、`#myStreak` 與相關 CSS，請求內容的 `streaks` 欄位維持傳 `{}`，引擎與 API 的 `streaks` 支援與測試不動。
+- **重複的雜湊小函式**：`train_identity_batch.py`、`closeout_batch.py`、`stage_season_update.py`、`evaluate_rolling_recency.py` 改用 `training_source.digest`（同樣的整檔 SHA-256，輸出相同）。`evaluate_identity_batch.py` 會刻意載入別的版本的程式，以及兩支分塊讀檔的版本，維持原樣。
+- **驗證**：再做一次同樣的 28 張截圖前後比對，尺寸全部相同、色版差異最大 10／255；相關 Python 測試（配球、邊界、批次封版、增量進件、訓練來源）49 項通過。
+
 ## 未處理（留待後續）
 
-- 系統深色的 `@media` 區塊因主題一定寫入 `data-theme` 而不會單獨生效，但只占約 30 行且沒有可見影響，先不動。
-- 隱藏的連投天數選單（`#myStreak`、牛棚每人的 `select.streak`）目前恆為 0，但引擎與 API 的 `streaks` 欄位有測試並預留給日後功能；移除只省一個節點，不值得縮小契約，維持原樣。
-- `src/pitch_change.py` 的 `add_pa` 只有測試在用，正式的 `observations()` 另有一套計數規則。要統一會改變換投資料的計數結果或測試範圍，不屬於行為不變的整理。
 - 4 支 2026 研究稽核腳本（`audit_2026_replay_roster`、`audit_cross_game_bullpen_2026`、`audit_replay_model`、`evaluate_2026_holdout`）目前沒有文件引用，但時間較新，可能仍在使用，先保留。
-- 檔案雜湊、JSON 指紋等小函式在多支腳本中重複，合併只省幾行，且部分腳本會刻意載入別的版本，暫不合併。
 - 模型：`output/candidate-2026` 的候選模型和正式 `models/2026` 雜湊相同（`d8f160b4…`），已經採用。近期加權、季中迭代與新的不確定性區間，先前的實驗都沒有改善，因此這一輪不重新訓練。
+- JSON 指紋、`atomic_json` 在多支腳本各有一份，輸出位元組與暫存檔名不同（影響收據雜湊），合併需保留各自的參數，風險高於收益，維持原樣。
+- 完整資料 Python 測試有 5 項需要本機沒有的舊模型 `models/gbt_2025-09_v5.pkl`、`models/gbt_full_v5.pkl`，與網站無關；重新訓練會產生不同權重，因此不補。

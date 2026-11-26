@@ -10,7 +10,7 @@ from audit_season_intake import audit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'src'))
 from identity import game_rosters,participant_key
 
-def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+from training_source import digest
 
 def validate_event_identities(path):
     """Validate PA and event actors in their own team/role, including mid-PA swaps."""
