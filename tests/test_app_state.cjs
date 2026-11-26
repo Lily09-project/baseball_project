@@ -52,6 +52,26 @@ test('popstate for a fragment within the rendered replay leaves the active resul
   assert.equal(f.eval('S.last.view'),'replay');
 });
 
+test('an in-page anchor jump while browsing replay games keeps the replay list instead of resetting to the overview',async()=>{
+  const f=fixture();
+  f.node('#lineupPage').hidden=true;
+  f.context.location.href='https://example.com/project/#workspace';
+  f.eval("backtestSub='replay';currentPage=()=>'review';showFeaturePage=()=>{throw Error('an anchor jump must not reopen a page')};setHistoryDate=()=>{throw Error('an anchor jump must not reset the date')};");
+  await f.eval("restoreReplayLocation({type:'popstate'})");
+  assert.equal(f.eval('backtestSub'),'replay');
+  assert.equal(f.eval('replayLocationGeneration'),0);
+});
+
+test('concurrent timing requests share one fetch and both receive the data',async()=>{
+  const f=fixture(), gate=deferred();let requests=0;
+  f.context.fetchTiming=async()=>{requests++;await gate.promise;return {schema_version:2,date:'2026-10-04',season:2026,games:{},threshold:1};};
+  f.eval("historyJSON=fetchTiming");
+  const first=f.eval('loadTiming()'),second=f.eval('loadTiming()');
+  gate.resolve();
+  const [a,b]=await Promise.all([first,second]);
+  assert.ok(a&&b);assert.equal(requests,1);assert.equal(a,b);
+});
+
 test('replay neighbors skip filtered and unavailable PAs even when the selection is filtered out',()=>{
   const f=fixture();
   f.eval("S.pas=['a','b','c','d','e'].map(pa_id=>({pa_id}));S.pa='c';S.replayAvailable=new Set(['a','c','e']);");
