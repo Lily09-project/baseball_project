@@ -19,7 +19,24 @@ function uiFixture(storageMode='ok',loadTeam=async()=>roster,values=new Map(),on
 async function fillUI(f){await f.api.selectTeam('A');for(let i=0;i<9;i++)f.pick(i,'H'+i);f.node('#lineupPitcherPick').onclick({currentTarget:{}});f.node('#lineupPlayerList').onclick({target:{closest:()=>({dataset:{player:'P0'}})}});}
 test('UI draft is isolated until apply, and confirmed configuration persists by team',async()=>{const f=uiFixture();await fillUI(f);assert.equal(f.api.current('A'),null);await f.node('#lineupApply').onclick();assert.equal(f.api.current('A').slots.length,9);assert.equal(f.api.current('B'),null);const stored=JSON.parse([...f.values.values()][0]);assert.equal(stored.confirmed.pitcher,'P0');assert.equal(f.applied.length,1);});
 test('storage refusal still permits session configuration and never reports saved',async()=>{for(const mode of ['throw','silent']){const f=uiFixture(mode);await fillUI(f);await f.node('#lineupApply').onclick();assert.ok(f.api.current('A'));assert.match(f.node('#lineupMessage').textContent,/無法保存/);}});
-test('malformed saved data remains preserved during editing and applying',async()=>{const f=uiFixture();f.values.set('cpbl-lineup-2025-v1:A','broken');await fillUI(f);await f.node('#lineupApply').onclick();assert.equal(f.values.get('cpbl-lineup-2025-v1:A'),'broken');assert.match(f.node('#lineupMessage').textContent,/無法保存/);});
+test('malformed saved data is backed up first, then replaced when the user applies a lineup',async()=>{const f=uiFixture();f.values.set('cpbl-lineup-2025-v1:A','broken');await fillUI(f);await f.node('#lineupApply').onclick();assert.equal(f.values.get('cpbl-lineup-2025-v1:A:corrupt-backup'),'broken');assert.ok(f.api.validState(JSON.parse(f.values.get('cpbl-lineup-2025-v1:A'))));assert.doesNotMatch(f.node('#lineupMessage').textContent,/無法保存/);});
+test('malformed saved data stays untouched when the backup itself cannot be written',async()=>{const f=uiFixture('throw');f.values.set('cpbl-lineup-2025-v1:A','broken');await fillUI(f);await f.node('#lineupApply').onclick();assert.equal(f.values.get('cpbl-lineup-2025-v1:A'),'broken');assert.match(f.node('#lineupMessage').textContent,/無法保存/);});
+test('prototype-chain keys are not valid positions and backups keep only known fields',()=>{
+  const c=config();c.slots[0].pos='constructor';assert.ok(L.validate(c,roster).length);
+  const state={version:2,season:2025,draft:{slots:config().slots,pitcher:'P0',evil:{a:1}},confirmed:null};state.draft.slots[0].junk=1;
+  const text=JSON.stringify({type:'baseball-lineup',team:'A',state});
+  const draft=L.readBackup(text,'A',roster);
+  assert.equal(draft.evil,undefined);assert.equal(draft.slots[0].junk,undefined);assert.equal(draft.pitcher,'P0');
+  state.draft.retired=[];delete state.draft.unavailable;
+  assert.doesNotThrow(()=>L.readBackup(JSON.stringify({type:'baseball-lineup',team:'A',state}),'A',roster));
+});
+test('undoing the only substitution makes the lineup savable again',async()=>{
+  const f=uiFixture();await fillUI(f);await f.node('#lineupApply').onclick();
+  const change=f.api.substitute('A',{kind:'ph',out:'H3',incoming:'H10'});
+  f.api.restore('A',change.snapshot);
+  const saved=JSON.parse(f.values.get('cpbl-lineup-2025-v1:A'));assert.ok(saved);
+  assert.equal(f.api.current('A').slots[3].name,'H3');
+});
 
 test('editing in a stale tab preserves the newer saved draft and confirmed lineup',async()=>{
  const first=uiFixture();

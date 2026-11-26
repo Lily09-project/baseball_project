@@ -1356,7 +1356,8 @@ header .theme-toggle:focus-visible { outline: 3px solid var(--clay); outline-off
 /* 主要入口：白底膠囊分段，選中時帶入口識別色 */
 #audienceSeg { background: var(--panel); border: 1px solid var(--rf-line); border-radius: 14px; padding: 4px; gap: 4px; box-shadow: var(--rf-shadow); }
 #audienceSeg button { border-radius: 10px; font-weight: 600; }
-#audienceSeg button.on { background: color-mix(in srgb, var(--entry) 10%, var(--panel)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--entry) 35%, transparent), inset 0 -3px var(--entry); }
+#audienceSeg button.on { background: color-mix(in srgb, var(--entry) 6%, var(--panel)); color: color-mix(in srgb, var(--entry) 82%, #000); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--entry) 35%, transparent), inset 0 -3px var(--entry); }
+:root[data-theme="dark"] #audienceSeg button.on { color: var(--entry); }
 @media (hover:hover) { #audienceSeg button:not(.on):not(:disabled):hover { background: var(--panel-2); color: var(--text); } }
 
 /* 功能切換與主要按鈕：漸層與柔和陰影 */
@@ -1403,3 +1404,10 @@ table.t td { border-bottom-color: var(--rf-line); }
 .score-legend .legend-s1 { background: #c2412d; }
 :root[data-theme="dark"] .score-legend .legend-s4 { background: #1d3a2a; box-shadow: inset 0 0 0 1.5px #7fd9a8; }
 :root[data-theme="dark"] .score-legend .legend-s2 { background: #3d2a18; box-shadow: inset 0 0 0 1.5px #f0b27a; }
+
+/* 稽核修正：記分板上的警示紅字對比、單日分析預設按鈕與名單匯入的觸控尺寸 */
+.scoreboard .neg { color: #fda4af; }
+@media (max-width: 820px) {
+  .preset-actions button { min-height: 44px; padding: 8px 12px; font-size: 13px; }
+  .lineup-backup input[type="file"] { min-height: 44px; padding: 8px 10px; }
+}

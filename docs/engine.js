@@ -6,13 +6,19 @@ const Engine = (() => {
   let M = null;
   const POS_ZH = { C: "捕手", "1B": "一壘", "2B": "二壘", "3B": "三壘", SS: "游擊", LF: "左外野", CF: "中外野", RF: "右外野", DH: "指定打擊" };
 
+  let loading = null;
   async function load(base = "data/") {
-    if (!M) {
-      const model=await (await fetch(base + "model.json", {cache:"no-cache"})).json();
+    if (M) return M;
+    // 同時多次載入共用同一個請求；失敗後下次呼叫可重試
+    if (!loading) loading = (async () => {
+      const response = await fetch(base + "model.json", {cache:"no-cache"});
+      if (response.ok === false) throw new Error('模型資料載入失敗（HTTP ' + response.status + '），請重新載入頁面');
+      const model = await response.json();
       if(model.training_version!==5||model.engine_contract!==5||!model.batch_id||model.identity_namespace!=='rebas:CPBL')throw new Error('模型資料版本不相容，請重新載入完整版本');
-      M=model;
-    }
-    return M;
+      M = model;
+      return M;
+    })().finally(() => { loading = null; });
+    return loading;
   }
 
   // ---------- 局勢 ----------
@@ -261,7 +267,21 @@ const Engine = (() => {
 
   /** 與 server.py /api/evaluate 相同的輸入輸出。 */
   function evaluate(b) {
+    if (!M) throw new Error('模型資料尚未載入');
     b={...b};
+    // 與 server.py validate_evaluation 相同的範圍檢查；不合法時報錯，不悄悄退回聯盟平均
+    const whole = (v) => { const n = typeof v === 'string' && v.trim() !== '' ? Number(v) : v; return typeof n === 'number' && Number.isInteger(n) ? n : NaN; };
+    for (const [key, low, high] of [['inning', 1, 12], ['outs', 0, 2], ['bases', 0, 7], ['bat_score', 0, Infinity], ['fld_score', 0, Infinity]]) {
+      const n = whole(b[key]);
+      if (!(n >= low && n <= high)) throw new Error(key + ' 須為有效範圍內的整數');
+      b[key] = n;
+    }
+    if (b.half !== 'away' && b.half !== 'home') throw new Error('局別無效');
+    if (b.pitch_count != null && b.pitch_count !== '') {
+      const n = whole(b.pitch_count);
+      if (!(n >= 0 && n <= 160)) throw new Error('本場球數須介於 0 至 160');
+      b.pitch_count = n;
+    }
     if (b.date != null && b.date !== M.cutoff) throw new Error('自訂情境使用目前模型日期；歷史情境請用回放');
     if(b.starter!=null&&typeof b.starter!=='boolean')throw new Error('starter 須為布林值或 null');
     const bat=M.rosters?.[b.bat_team],fld=M.rosters?.[b.fld_team];
@@ -280,7 +300,11 @@ const Engine = (() => {
       if(new Set(b[field]).size!==b[field].length)throw new Error('名單不能重複');
     }
     if(b.bench?.includes(b.due))throw new Error('現任打者不能同時列入板凳');
-    if(b.streaks)b.streaks=Object.fromEntries(Object.entries(b.streaks).map(([n,v])=>[resolve(n,fld.pitchers),v]));
+    if(b.streaks)b.streaks=Object.fromEntries(Object.entries(b.streaks).map(([n,v])=>{
+      const days=whole(v);
+      if(!(days>=0&&days<=10))throw new Error('連續登板天數須為 0 至 10 的整數');
+      return [resolve(n,fld.pitchers),days];
+    }));
     const row = {
       inning: +b.inning, half: b.half, bat_score: +b.bat_score, fld_score: +b.fld_score, bases: +b.bases, outs: +b.outs,
       pitcher: b.pitcher, phand: hand(M.phand[b.pitcher]), bat_team: b.bat_team, fld_team: b.fld_team, date: M.cutoff,
@@ -305,10 +329,13 @@ const Engine = (() => {
   }
 
   function detail(batter, pitcher) {
+    if (!M) throw new Error('模型資料尚未載入');
+    const known = (id, table) => typeof id === 'string' && Object.hasOwn(table, id);
+    if (!known(batter, M.bhand) || !known(pitcher, M.phand)) throw new Error('球員名稱無法辨識，請重新選取球員');
     const ph = hand(M.phand[pitcher]);
     const bh = batHand(batter, ph);
     const r = matchup(batter, bh, pitcher);
-    const bc = M.bat_cell[batter] || {};
+    const bc = Object.hasOwn(M.bat_cell, batter) ? M.bat_cell[batter] : {};
     return {
       batter, pitcher, bhand: bh, phand: ph, mix_n: r.mix_n, n: r.n,
       cells: M.cells.map((c, i) => ({ cell: c, usage: r.mix[i], effect: r.cell_eff[i], whiff_dev: bc[c] ? bc[c][3] : 0, n: bc[c] ? bc[c][2] : 0 })),

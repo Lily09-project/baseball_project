@@ -75,7 +75,11 @@
       const migrated=resolveMembers(originalGroups,pitchers),groups=migrated.groups;
       const selected=names.includes(old?.selected)?old.selected:chosen?names[2]:names[0];
       return {groups,legacy:resolveMembers(legacy,pitchers).groups,selected,error:migrated.unresolved.length?'舊群組已保留，部分球員需重新選取。':write(storage,team,groups,selected)?'':'儲存不可用；可手動選人，群組尚未保存。'};
-    } catch{return {groups:fallback,legacy:[],selected:names[0],error:'無法讀取群組；原設定保留，可手動選人。',blocked:true};}
+    } catch{
+      let corruptRaw=null;
+      try{corruptRaw=storage?storage.getItem(prefix+team):null;}catch{}
+      return {groups:fallback,legacy:[],selected:names[0],error:'無法讀取群組；原設定保留，可手動選人。',blocked:true,corruptRaw};
+    }
   }
   function resolveMembers(groups,pitchers){
     if(typeof PlayerIdentity==='undefined')return {groups:groups.map(copy),changed:false,unresolved:[]};
@@ -128,7 +132,20 @@
     select.onchange=choose;
     q('.group-members').onchange=e=>{if(e.target.type==='checkbox'){e.target.checked?draft().add(e.target.value):draft().delete(e.target.value);updateDraft();}};
     q('#pitcherGroupSave').onclick=()=>{
-      if(state.blocked){const hadChanges=dirty(),retry=loadState(storage,team,pitchers);if(retry.blocked){feedback('原設定無法讀取；請先恢復網站儲存後重試，草稿仍保留。');return;}state=retry;groups=retry.groups;if(!hadChanges)session.drafts.set(select.value,new Set(group().members));render();feedback(hadChanges?'已恢復原設定；請核對草稿後再次儲存。':'已恢復原設定。');return;}
+      if(state.blocked){const hadChanges=dirty(),retry=loadState(storage,team,pitchers);if(retry.blocked){
+        // 讀不懂的舊記錄：使用者明確按儲存時，先備份舊內容，備份成功才用目前草稿覆寫
+        if(retry.corruptRaw!=null&&hadChanges){
+          try{
+            const backup=prefix+team+':corrupt-backup';
+            if(storage.getItem(backup)===null)storage.setItem(backup,retry.corruptRaw);
+            if(storage.getItem(backup)!==null){
+              const next=groups.map(g=>g.name===select.value?{name:g.name,members:[...draft()]}:copy(g));
+              if(write(storage,team,next,select.value)){groups=next;state={...state,blocked:false,error:'',corruptRaw:null};render();feedback('已備份讀不懂的舊設定，並儲存 '+select.value+'。');return;}
+            }
+          }catch{}
+        }
+        feedback('原設定無法讀取；請先恢復網站儲存後重試，草稿仍保留。');return;
+      }state=retry;groups=retry.groups;if(!hadChanges)session.drafts.set(select.value,new Set(group().members));render();feedback(hadChanges?'已恢復原設定；請核對草稿後再次儲存。':'已恢復原設定。');return;}
       const next=groups.map(g=>g.name===select.value?{name:g.name,members:[...draft()]}:copy(g));
       if(!write(storage,team,next,select.value)){feedback('儲存失敗；草稿保留，請確認網站儲存後重試。');return;}
       groups=next;state.error='';render();feedback('已儲存 '+select.value+'（此網站／瀏覽器）');

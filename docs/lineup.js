@@ -43,7 +43,7 @@
     const names=config.slots.map(x=>x?.name),positions=config.slots.map(x=>x?.pos);
     if(names.some(n=>!n))errors.push('九個棒次都需要球員。');
     if(names.filter(Boolean).length!==new Set(names.filter(Boolean)).size)errors.push('同一球員不能占兩個棒次。');
-    if(positions.some(p=>!POS[p])||new Set(positions).size!==9)errors.push('每個守位與 DH 各需一人。');
+    if(positions.some(p=>!Object.hasOwn(POS,p))||new Set(positions).size!==9)errors.push('每個守位與 DH 各需一人。');
     if(names.some(n=>n&&!roster.hitters.some(h=>h.name===n)))errors.push('有球員不在此隊資料中，請重新選擇。');
     if(!roster.pitchers.some(p=>p.name===config.pitcher))errors.push('請選擇場上投手。');
     if(config.pitcher&&names.includes(config.pitcher))errors.push('投打雙向或特殊 DH 配置尚未支援，請改用手動評估。');
@@ -53,7 +53,7 @@
   }
   function validState(s){
     const names=list=>list===undefined||(Array.isArray(list)&&list.every(n=>typeof n==='string')&&new Set(list).size===list.length);
-    const shape=c=>c&&Array.isArray(c.slots)&&c.slots.length===9&&c.slots.every(x=>x&&typeof x.name==='string'&&POS[x.pos]&&(x.fieldingPending===undefined||x.fieldingPending===true))&&new Set(c.slots.map(x=>x.pos)).size===9&&typeof c.pitcher==='string'&&names(c.unavailable)&&names(c.retired)&&(!c.retired||c.retired.every(name=>c.unavailable?.includes(name)));
+    const shape=c=>c&&Array.isArray(c.slots)&&c.slots.length===9&&c.slots.every(x=>x&&typeof x.name==='string'&&Object.hasOwn(POS,x.pos)&&(x.fieldingPending===undefined||x.fieldingPending===true))&&new Set(c.slots.map(x=>x.pos)).size===9&&typeof c.pitcher==='string'&&names(c.unavailable)&&names(c.retired)&&(!c.retired||c.retired.every(name=>c.unavailable?.includes(name)));
     return s&&[1,2].includes(s.version)&&s.season===runtimeSeason&&shape(s.draft)&&(!s.confirmed||shape(s.confirmed));
   }
   function readBackup(text,team,teamRoster){
@@ -71,15 +71,16 @@
     if(imported.pitcher)inUse.push(imported.pitcher);
     if(new Set(inUse).size!==inUse.length||inUse.some(name=>imported.unavailable?.includes(name)))
       throw Error('檔案中有人重複配置，或已退場球員仍在場上。');
-    const draft=clone(imported);
-    if(draft.retired){
-      draft.unavailable=draft.unavailable.filter(name=>!draft.retired.includes(name));
-      delete draft.retired;
-    }
+    const draft={
+      slots:imported.slots.map(slot=>({name:slot.name,pos:slot.pos,...(slot.fieldingPending===true?{fieldingPending:true}:{})})),
+      pitcher:imported.pitcher,
+    };
+    if(imported.unavailable)draft.unavailable=[...imported.unavailable];
+    if(imported.retired)draft.unavailable=(imported.unavailable||[]).filter(name=>!imported.retired.includes(name));
     return draft;
   }
   const states=new Map();let defaults={},defaultsMeta={},options,teamName='',roster,pickerIndex=null,pickerField=false,returnFocus=null;
-  let swapMode=null,swapFirst=null,swapUndo=null;
+  let swapMode=null,swapFirst=null,swapUndo=null,applying=false;
   let lineupTab='setup';
   const q=s=>options.element.querySelector(s);
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -98,7 +99,7 @@
       let s={version:2,season:runtimeSeason,draft:empty(),confirmed:null};
       let raw=null;
       try{raw=localStorage.getItem(key(t));if(raw){const parsed=JSON.parse(raw);if(!validState(parsed))throw Error('invalid');s={version:parsed.version,season:runtimeSeason,draft:savedSetup(parsed.draft),confirmed:savedSetup(parsed.confirmed),legacyRaw:raw};}s.savedRaw=raw;}
-      catch{s.storageError=true;}
+      catch{if(raw){s.corrupt=true;s.savedRaw=raw;}else s.storageError=true;}
       const draftMigrated=typeof PlayerIdentity==='undefined'&&migrateIdentity(s.draft,t),confirmedMigrated=typeof PlayerIdentity==='undefined'&&migrateIdentity(s.confirmed,t);
       s.identityMigrated=draftMigrated||confirmedMigrated;
       // 預設名單只當作草稿；要按「套用配置」或「恢復預設名單」才進入依場上名單評估的球隊模式
@@ -124,6 +125,13 @@
     if(s.storageError)return 'unavailable';
     try{
       const storageKey=key(teamName);
+      if(s.corrupt){
+        // 讀不懂的舊記錄先另存備份，備份成功才覆寫
+        const backup=storageKey+':corrupt-backup';
+        if(!localStorage.getItem(backup))localStorage.setItem(backup,s.savedRaw);
+        if(localStorage.getItem(backup)===null)return 'unavailable';
+        delete s.corrupt;
+      }
       const raw=JSON.stringify({version:2,season:runtimeSeason,draft:savedSetup(s.draft),confirmed:savedSetup(s.confirmed)});
       const latest=localStorage.getItem(storageKey);
       if(latest!==s.savedRaw&&latest!==raw)return 'conflict';
@@ -141,7 +149,11 @@
   function current(t){const s=get(t);return s.confirmed&&(typeof PlayerIdentity==='undefined'||s.identityChecked)?clone(s.confirmed):null;}
   /* 改為不使用場上名單：保留草稿，評估頁回到可選所有球員 */
   function release(t){const s=get(t);if(!s.confirmed)return;s.confirmed=null;const prev=teamName;teamName=t;persist();teamName=prev;if(t===teamName&&options)render();}
-  function message(text,error=false){q('#lineupMessage').textContent=text;q('#lineupMessage').setAttribute('role',error?'alert':'status');}
+  async function notifyApplied(team,payload){
+    try{await options.applied(team,payload);}
+    catch{message('名單已更新，但評估頁同步失敗，請重新整理後再試。',true);}
+  }
+  function message(text,error=false){q('#lineupMessage').textContent=text;const alert=q('#lineupAlert');if(alert)alert.textContent=error?text:'';}
   function draftChanged(){delete get(teamName).isDefault;const saved=persist();render();message(saveMessage(saved,'草稿已保存；按「套用配置」更新評估頁。','草稿保留在本次頁面，無法保存到瀏覽器；按「套用配置」更新評估頁。'));return saved;}
   function resetSwap(){swapMode=null;swapFirst=null;swapUndo=null;}
   function focusSlot(i,mode){const c=get(teamName).draft;q(mode==='field'?`[data-field="${c.slots[i].pos}"]`:`[data-pick="${i}"]`)?.focus();}
@@ -159,13 +171,13 @@
     q('#lineupSwapHint').textContent=swapMode?(swapFirst===null?'選兩位球員互換'+(swapMode==='field'?'守位':'棒次')+'。':'已選 '+label(get(teamName).draft.slots[swapFirst].name)+'，再選一人；再點一次可取消選取。'):'';
     q('#lineupFieldHint').textContent=swapMode==='field'?q('#lineupSwapHint').textContent:'點守位選球員';
     q('#lineupOrderHint').textContent=swapMode==='order'?q('#lineupSwapHint').textContent:'↑↓ 調整棒次';
-    options.element.querySelectorAll('[data-pick],[data-field]').forEach(b=>{const i=b.hasAttribute('data-field')?get(teamName).draft.slots.findIndex(s=>s.pos===b.dataset.field):Number(b.dataset.pick),selected=swapMode&&swapFirst===i&&((swapMode==='field')===b.hasAttribute('data-field'));b.classList.toggle('swap-selected',!!selected);b.setAttribute('aria-pressed',String(!!selected));});
+    options.element.querySelectorAll('[data-pick],[data-field]').forEach(b=>{const i=b.hasAttribute('data-field')?get(teamName).draft.slots.findIndex(s=>s.pos===b.dataset.field):Number(b.dataset.pick),selected=swapMode&&swapFirst===i&&((swapMode==='field')===b.hasAttribute('data-field'));b.classList.toggle('swap-selected',!!selected);if(swapMode)b.setAttribute('aria-pressed',String(!!selected));else b.removeAttribute('aria-pressed');});
   }
   function render(){
     const s=get(teamName),c=s.draft;
     q('#lineupTeam').value=teamName;
     q('#lineupStatus').textContent=(s.isDefault?'預設名單（'+runtimeSeason+' 最後 '+(defaultsMeta[teamName]?.games||30)+' 場先發）'+(s.confirmed?'':' · 尚未套用'):s.confirmed?(JSON.stringify(s.confirmed)===JSON.stringify(c)?'已有套用配置':'已套用配置 · 有未套用的修改'):(c.slots.some(x=>x.name)?'尚未套用':'尚未設定'))+' · 已填 '+c.slots.filter(x=>x.name).length+'/9 棒';
-    q('#lineupRows').innerHTML=c.slots.map((slot,i)=>`<div class="lineup-row"><strong class="lineup-order">${i+1}</strong><button type="button" class="lineup-name" data-pick="${i}" aria-label="第 ${i+1} 棒選擇球員">${esc(label(slot.name)||'選擇球員')}<span aria-hidden="true">⌄</span></button><select data-position="${i}" aria-label="第 ${i+1} 棒守位">${Object.entries(POS).map(([p,label])=>`<option value="${p}" ${slot.pos===p?'selected':''}>${label}</option>`).join('')}</select><div class="lineup-move"><button type="button" data-move="${i}" data-step="-1" aria-label="第 ${i+1} 棒上移" ${i===0?'disabled':''}>↑</button><button type="button" data-move="${i}" data-step="1" aria-label="第 ${i+1} 棒下移" ${i===8?'disabled':''}>↓</button></div></div>`).join('');
+    q('#lineupRows').innerHTML=c.slots.map((slot,i)=>`<div class="lineup-row"><strong class="lineup-order">${i+1}</strong><button type="button" class="lineup-name" data-pick="${i}" aria-label="第 ${i+1} 棒：${esc(label(slot.name)||'未選擇')}，選擇球員">${esc(label(slot.name)||'選擇球員')}<span aria-hidden="true">⌄</span></button><select data-position="${i}" aria-label="第 ${i+1} 棒守位">${Object.entries(POS).map(([p,label])=>`<option value="${p}" ${slot.pos===p?'selected':''}>${label}</option>`).join('')}</select><div class="lineup-move"><button type="button" data-move="${i}" data-step="-1" aria-label="第 ${i+1} 棒上移" ${i===0?'disabled':''}>↑</button><button type="button" data-move="${i}" data-step="1" aria-label="第 ${i+1} 棒下移" ${i===8?'disabled':''}>↓</button></div></div>`).join('');
     q('#lineupPitcherName').textContent=label(c.pitcher)||'選擇投手';
     const pending=c.slots.filter(slot=>slot.fieldingPending);
     q('#lineupApply').textContent=pending.length?'確認接守並套用':'套用配置';
@@ -187,7 +199,7 @@
     q('#lineupUnavailable').onchange=e=>{
       const name=e.target.dataset.lineupUnavailable;if(!name||retired.has(name))return;
       const excluded=new Set(c.unavailable||[]);if(e.target.checked)excluded.add(name);else excluded.delete(name);
-      c.unavailable=[...excluded];render();
+      c.unavailable=[...excluded];swapUndo=null;render();
       message('本場不可用名單已更新，套用後生效。關閉或重新整理後重置。');
       [...options.element.querySelectorAll('[data-lineup-unavailable]')].find(input=>input.dataset.lineupUnavailable===name)?.focus();
     };
@@ -245,7 +257,7 @@
     q('#lineupApply').disabled=true;
     q('#lineupRecord').disabled=true;
     q('#lineupUndoChange').hidden=true;
-    try{const next=await options.team(name);if(token!==selectTeam.generation)return;teamName=name;roster=next;render();message(get(name).storageError?'保存記錄無法讀取；本次仍可設定。':get(name).identityUnresolved?.length?'舊名單已保留，部分球員需重新選取後套用。':get(name).identityMigrated?'已對應球員身份並保留原名單與棒次，請核對後套用。':'請依實際出賽名單設定。');}
+    try{const next=await options.team(name);if(token!==selectTeam.generation)return;teamName=name;roster=next;render();message(get(name).storageError||get(name).corrupt?'保存記錄無法讀取；本次仍可設定，保存時會先備份舊記錄再覆寫。':get(name).identityUnresolved?.length?'舊名單已保留，部分球員需重新選取後套用。':get(name).identityMigrated?'已對應球員身份並保留原名單與棒次，請核對後套用。':'請依實際出賽名單設定。');}
     catch{if(token!==selectTeam.generation)return;if(roster)render();message('球員名單載入失敗，請重新選隊。',true);}
     finally{if(token===selectTeam.generation){options.element.removeAttribute('aria-busy');q('#lineupApply').disabled=!roster;q('#lineupChangeConfirm').checked=false;q('#lineupChangeStatus').textContent='';if(roster)renderChanges();}}
   }
@@ -278,7 +290,7 @@
       q('#lineupChangeIn').value='';
       renderChanges();
       q('#lineupChangeStatus').textContent=`${label(out.name)}已退場。${kind==='pen'?'新投手球數從 0 起算。':`${label(entrant.name)}承接第 ${out.order} 棒。${fieldingPending?'下個守備半局請確認接守。':''}`}`;
-      await o.applied(team,{pitcherSelected:false,resetPitchCount:kind==='pen',substitution:{kind,out:out.name,incoming:entrant.name}});
+      await notifyApplied(team,{pitcherSelected:false,resetPitchCount:kind==='pen',substitution:{kind,out:out.name,incoming:entrant.name}});
     };
     q('#lineupUndoChange').onclick=async()=>{
       if(options.element.hasAttribute('aria-busy'))return;
@@ -289,7 +301,7 @@
       q('#lineupChangeConfirm').checked=false;
       renderChanges();
       q('#lineupChangeStatus').textContent='已復原上次換人。';
-      await o.applied(team,{pitcherSelected:change.kind==='pen',resetPitchCount:false,evaluation:change.evaluation,substitution:{kind:change.kind,incoming:change.out}});
+      await notifyApplied(team,{pitcherSelected:change.kind==='pen',resetPitchCount:false,evaluation:change.evaluation,substitution:{kind:change.kind,incoming:change.out}});
     };
     ['field','order'].forEach(mode=>q(mode==='field'?'#lineupSwapField':'#lineupSwapOrder').onclick=()=>{if(options.element.hasAttribute('aria-busy'))return;swapMode=swapMode===mode?null:mode;swapFirst=null;render();});
     q('#lineupSwapCancel').onclick=()=>{swapMode=null;swapFirst=null;render();};
@@ -327,9 +339,10 @@
       const saved=persist();
       // 與開啟網站時相同：換回預設先發投手時依角色帶入預設球數（先發 90／後援 15），不歸零
       s.isDefault=true;render();message(saveMessage(saved,'已恢復預設名單並套用。','已恢復預設並套用；本次可用，但無法保存到瀏覽器。'));
-      await o.applied(teamName,{pitcherSelected:false,resetPitchCount:false});
+      await notifyApplied(teamName,{pitcherSelected:false,resetPitchCount:false});
     };
     q('#lineupApply').onclick=async()=>{
+      if(applying)return;applying=true;try{
       const s=get(teamName),old=s.confirmed,next=clone(s.draft);
       if(old?.retired?.length){
         next.retired=[...old.retired];
@@ -342,7 +355,8 @@
       next.slots.forEach(slot=>delete slot.fieldingPending);
       s.draft=next;s.confirmed=clone(next);const saved=persist();render();
       message(saveMessage(saved,'配置已套用並保存。','配置已套用；本次可用，但無法保存到瀏覽器。'));
-      await o.applied(teamName,{pitcherSelected:pitcherChanged,resetPitchCount:pitcherChanged});
+      await notifyApplied(teamName,{pitcherSelected:pitcherChanged,resetPitchCount:pitcherChanged});
+      }finally{applying=false;}
     };
     const exportButton=q('#lineupExport'), importInput=q('#lineupImport');
     exportButton.onclick=()=>{
@@ -374,7 +388,7 @@
         const draft=readBackup(text,activeTeam,activeRoster);
         resetSwap();state.draft=draft;draftChanged();
       } catch(error) {
-        if(isCurrent())message(error instanceof SyntaxError?'名單檔案不是有效的 JSON。':error.message,true);
+        if(isCurrent())message(error instanceof SyntaxError?'名單檔案不是有效的 JSON。':error instanceof TypeError?'名單檔案格式不符。':error.message,true);
       }
     };
   }
@@ -388,6 +402,7 @@
   /* 換人：kind 為 'ph'（代打承接原棒次與守位）或 'pen'（換投）；被換下的球員記為已退場。回傳復原用的快照。 */
   function substitute(t,{kind,out,incoming,fieldingPending=false}){
     const s=get(t);if(!['ph','pen'].includes(kind)||!s.confirmed||!out||!incoming||out===incoming)return null;
+    swapUndo=null;
     const c=s.confirmed;
     const canReplace=config=>(kind==='pen'?config.pitcher===out:config.slots.some(x=>x.name===out))
       &&config.pitcher!==incoming&&!config.slots.some(x=>x.name===incoming)&&!(config.unavailable||[]).includes(incoming);
@@ -423,6 +438,8 @@
       if(snapshot.isDefault)s.isDefault=true;else delete s.isDefault;
     }
     s.confirmed=clone(snapshot.confirmed);
+    swapUndo=null;
+    s.inGame=!!(s.changes?.length||s.confirmed?.retired?.length||s.draft?.retired?.length);
     return {draftPreserved,...showSubstitution(t)};
   }
   function cancelSwap(){swapMode=null;swapFirst=null;if(options&&roster)render();}

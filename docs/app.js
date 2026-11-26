@@ -31,7 +31,7 @@ function officialPlayerLink(name) {
 /* 中職紀錄用語；未列出的代碼顯示為其他結果，不自行猜測 */
 const RESULT_LABELS={SO:'三振',BB:'四壞球',uBB:'四壞球',iBB:'故意四壞球',IBB:'故意四壞球',HBP:'觸身球','1B':'一壘安打','2B':'二壘安打','3B':'三壘安打',HR:'全壘打',
   FC:'野手選擇',FO:'飛球出局',GO:'滾地球出局',AO:'出局',GIDP:'雙殺打',E:'失誤上壘',SF:'高飛犧牲打',SF_E:'高飛犧牲打（失誤）',SH:'犧牲短打',SH_E:'犧牲短打（失誤上壘）',SH_FC:'犧牲短打（野手選擇）'};
-const resultLabel=code=>RESULT_LABELS[code]||(code?'其他結果':'未提供');
+const resultLabel=code=>Object.hasOwn(RESULT_LABELS,code)?RESULT_LABELS[code]:(code?'其他結果':'未提供');
 const BASES = { 0: "無人", 1: "一壘", 2: "二壘", 3: "一二壘", 4: "三壘", 5: "一三壘", 6: "二三壘", 7: "滿壘" };
 
 const S = {
@@ -65,7 +65,8 @@ function clearValidErrors() {
   const hadErrors=fieldErrors.size>0;
   for(const [id] of fieldErrors) {
     const input=$('#'+id), duplicate=id.startsWith('nb')&&['nb1','nb2','nb3'].filter(k=>$('#'+k).value===input.value).length>1;
-    if(input.value!==''&&input.checkValidity()&&(!id.startsWith('nb')?Number.isInteger(Number(input.value)):!duplicate)) {
+    const valid=input.type==='number'?Number.isInteger(Number(input.value)):id.startsWith('nb')?!duplicate:true;
+    if(input.value!==''&&input.checkValidity()&&valid) {
       fieldErrors.delete(id);input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');
     }
   }
@@ -224,7 +225,8 @@ const countNumber = v => Number.isFinite(v)&&v>=0?Math.round(v).toLocaleString('
 const fixedNumber = (v,d=3) => Number.isFinite(v)?(Number(v.toFixed(d))===0?0:v).toFixed(d):'—';
 const cls = (v, eps = 0.005) => (v > eps ? "pos" : v < -eps ? "neg" : "mut");
 const handChip = (h) => `<span class="chip hand-${esc(h)}">${handText(h)}</span>`;
-const posChips = (p) => Object.keys(p || {}).slice(0, 3).map((k) => `<span class="chip">${POS[k] || k}</span>`).join("");
+const posName = (k) => (Object.hasOwn(POS, k) ? POS[k] : k);
+const posChips = (p) => Object.keys(p || {}).slice(0, 3).map((k) => `<span class="chip">${esc(posName(k))}</span>`).join("");
 
 /* ---------------- 偏好設定與我的預設情境（存在瀏覽器） ---------------- */
 const PREF_KEY = 'bb.prefs.v1';
@@ -321,8 +323,9 @@ function selectByLabel(id, label) {
   return true;
 }
 async function loadDemo() {
-  if (!S.ready || currentPage() !== 'evaluation') return;
+  if (currentPage() !== 'evaluation') return;
   const status = $('#demoStatus');
+  if (!S.ready) { if (status) status.textContent = '球隊資料尚未載入完成，請稍後或重新整理再試。'; return; }
   if (audienceMode !== 'general') { await selectAudienceEntry('general'); if (audienceMode !== 'general' || currentPage() !== 'evaluation') return; }
   const page=featureGeneration, applied=await applySituation(DEMO,true);
   if(applied!==scenarioGeneration||page!==featureGeneration||currentPage()!=='evaluation')return;
@@ -756,6 +759,11 @@ async function restoreReplayLocation(event) {
   const target=replayLocation();
   const screen=window.history.state?.replayScreen;
   const reviewSub=screen?.page==='review'&&screen.sub==='replay'?'replay':'season';
+  if(event?.type==='popstate'&&window.history.state==null&&String(location.href).includes('#')) {
+    // 頁內錨點跳轉會新增沒有畫面狀態的歷史項目；補上目前畫面，保留目前結果、選取與分頁。
+    window.history.replaceState({replayScreen:replayScreen()},'',location.href);
+    return;
+  }
   if(event?.type==='popstate') {
     // A fragment jump must keep the current result, selection and disclosure.
     if(target?.pa&&S.last?.view==='replay'&&currentPage()==='review'&&
@@ -956,7 +964,7 @@ function bindStatic() {
     renderBench();
   };
   $("#duePos").onchange = () => renderBench();
-  $("#benchAll").onclick = () => { S.bench = new Set(S.roster[$("#myTeam").value].hitters.filter(h => h.name !== $("#dueBatter").value&&benchEligible(h.name)).map(h => h.name)); renderBench(); };
+  $("#benchAll").onclick = () => { const mine = S.roster[$("#myTeam").value]; if (!mine) return; S.bench = new Set(mine.hitters.filter(h => h.name !== $("#dueBatter").value&&benchEligible(h.name)).map(h => h.name)); renderBench(); };
   $("#benchNone").onclick = () => { S.bench.clear(); renderBench(); };
   $("#penAll").onclick = () => { $$("#penList input").forEach(i=>{i.checked=bullpenEligible(i.value);}); invalidateCustom();groupControl?.refresh(); };
   $("#penNone").onclick = () => { $$("#penList input").forEach((i) => i.checked = false); invalidateCustom();groupControl?.refresh(); };
@@ -1118,6 +1126,7 @@ function renderPenVisibility(searching=false) {
 }
 function autoPos() {
   const my = S.roster[$("#myTeam").value];
+  if (!my) return;
   const h = my.hitters.find((x) => x.name === $("#dueBatter").value);
   const top = confirmedOwnLineup()?.slots.find(s=>s.name===h?.name)?.pos || (h && Object.keys(h.positions || {})[0]);
   $("#duePos").value = top || "DH";
@@ -1167,8 +1176,15 @@ function availabilityNames(names, action, open=false) {
 function mobileRowDetails(x, pen) {
   return `<details class="mobile-row-details"><summary>樣本與數據</summary><p>${countNumber(x['樣本球數'])} 球${!pen?' · '+esc(x['可信度'])+'樣本':''}</p>${!pen&&Number.isFinite(x['預估勝率'])?`<p>相對聯盟平均 ${deltaLabel(x['預估勝率'])}</p>`:''}${pen?`<p>失分價值 ${fixedNumber(x['預估失分'])} 分${x['疲勞調整']>.0005?'（含疲勞 +'+x['疲勞調整'].toFixed(3)+'）':''}</p>`:''}</details>`;
 }
+function announceResult(box) {
+  const live = $('#resultAnnounce');
+  const headline = (box.querySelector('.reco')?.innerText || '').split(String.fromCharCode(10)).map(t => t.trim()).find(Boolean) || '';
+  if (live) live.textContent = headline ? `評估完成：${headline}` : '評估完成，結果已更新。';
+}
+function setHTMLIfChanged(el, html) { if (el.innerHTML !== html) el.innerHTML = html; }
 function renderBench(reset) {
   const my = S.roster[$("#myTeam").value];
+  if (!my) return;
   const due = $("#dueBatter").value;
   const duePos = $("#duePos").value;
   const q = $("#benchFilter").value.trim();
@@ -1179,7 +1195,7 @@ function renderBench(reset) {
   if (reset === true) S.bench = new Set(list.filter(h => !regulars.has(h.name)).map(h => h.name));
   S.bench.delete(due);
   const pickedToday=list.filter(h=>S.bench.has(h.name));
-  $('#benchAvailability').innerHTML=`<div class="today-availability-head"><strong>今日勾選 ${pickedToday.length} 人</strong><span>名單需確認；排除未登錄與已退場者</span></div><div class="today-availability-names">${availabilityNames(pickedToday.map(h=>h.name),'續打',$('#benchAvailability').querySelector?.('.availability-more')?.open)}</div>`;
+  setHTMLIfChanged($('#benchAvailability'),`<div class="today-availability-head"><strong>今日勾選 ${pickedToday.length} 人</strong><span>名單需確認；排除未登錄與已退場者</span></div><div class="today-availability-names">${availabilityNames(pickedToday.map(h=>h.name),'續打',$('#benchAvailability').querySelector?.('.availability-more')?.open)}</div>`);
   const shown = list.filter((h) => matchesPlayerSearch(h.name,$('#myTeam').value,q));
   const posRank = (h) => { const p = Object.keys(h.positions || {})[0]; const i = POS_ORDER.indexOf(p); return i < 0 ? 99 : i; };
   const teamKey=$('#myTeam').value;
@@ -1196,12 +1212,13 @@ function renderBench(reset) {
       const cover=duePos&&duePos!=='DH'&&Object.keys(h.positions||{}).includes(duePos);
       return `<label><input type="checkbox" value="${esc(h.name)}" ${S.bench.has(h.name)?'checked':''}>${N(h.name)}${cover?'<span class="chip cover">可接守</span>':''}<span class="meta">${handChip(h.hand)}${Object.keys(h.positions||{}).length?posChips(h.positions):'<span class="chip">守位未收錄</span>'}<span class="chip">${h.pa} 打席</span></span></label>`;
     }).join('');
-    return `<section class="bench-group"><div class="bench-group-h"><button type="button" class="bench-expand" data-expand="${g.index}" aria-expanded="${!!(open.has(g.index))}" aria-controls="bench-group-${g.index}" ${!g.all.length?'disabled':''}><span class="bench-group-name">${g.label}</span><span class="mut bench-group-count">${picked}/${g.all.length}${q?' · 符合 '+g.players.length+' 人':''}</span><span aria-hidden="true" class="chevron">⌄</span></button><button type="button" class="link" data-group="${names}" aria-label="${esc(g.label)}：${allPicked?'清除選取':'全選'}${q?'符合者':''}" ${!g.players.length?'disabled':''}>${q?(allPicked?'取消符合者':'選取符合者'):(allPicked?'清除選取':'全選')}</button></div><div id="bench-group-${g.index}" ${open.has(g.index)?'':'hidden'}>${rows}</div></section>`;
+    return `<section class="bench-group"><div class="bench-group-h"><button type="button" class="bench-expand" data-expand="${g.index}" aria-expanded="${!!(open.has(g.index))}" aria-controls="bench-group-${g.index}" ${!g.all.length?'disabled':''}><span class="bench-group-name">${g.label}</span><span class="mut bench-group-count">${picked}/${g.all.length}${q?' · 符合 '+g.players.length+' 人':''}</span><span aria-hidden="true" class="chevron">⌄</span></button><button type="button" class="link" data-group="${names}" aria-label="${q?(allPicked?'取消符合者':'選取符合者'):(allPicked?'清除選取':'全選')}：${esc(g.label)}" ${!g.players.length?'disabled':''}>${q?(allPicked?'取消符合者':'選取符合者'):(allPicked?'清除選取':'全選')}</button></div><div id="bench-group-${g.index}" ${open.has(g.index)?'':'hidden'}>${rows}</div></section>`;
   }).join('');
   $('#benchAll').innerHTML=uiIcon('check')+'全選';$('#benchNone').innerHTML=uiIcon('clear')+'清除選取';
 
   const box = $("#benchList"), top = box.scrollTop;
   const focusValue=box.contains?.(document.activeElement)?document.activeElement.value:null;
+  const focusGroup=box.contains?.(document.activeElement)?document.activeElement.dataset?.group:null;
   box.innerHTML = html || '<p role="status">沒有符合的球員；搜尋不會清除已選名單。</p>';
   box.scrollTop = top;
   box.querySelectorAll('[data-expand]').forEach(button=>button.onclick=()=>{
@@ -1210,6 +1227,7 @@ function renderBench(reset) {
   });
   updateBenchToggle();
   if(focusValue)Array.from(box.querySelectorAll('input')).find(i=>i.value===focusValue)?.focus({preventScroll:true});
+  else if(focusGroup)Array.from(box.querySelectorAll('button[data-group]')).find(b=>b.dataset.group===focusGroup)?.focus({preventScroll:true});
 }
 
 async function evaluateCustom() {
@@ -1271,6 +1289,7 @@ async function run(fn, view, {focusTab,focusControl} = {}) {
     S.last.view = view;
     S.selected = null;
     renderResult();
+    announceResult(box);
     if(view==='replay'){box.setAttribute('data-replay-pa',S.pa);box.setAttribute('data-replay-decision',result.replay_context?.decision||S.tab||'ph');}
     $('.mobile-jump a[href="#result"]').hidden = false;
     // 結果接在表單下方：窄螢幕直接跳到結果開頭，寬螢幕回到頁首（不使用平滑捲動）
@@ -1289,7 +1308,8 @@ async function run(fn, view, {focusTab,focusControl} = {}) {
       box.innerHTML='<div class="err-box" role="alert">資料與模型批次不同，請重新載入完整版本。<button class="retry">重新載入頁面</button></div>';
       box.querySelector('.retry').onclick=()=>location.reload();
     } else {
-      box.innerHTML = `<div class="err-box" role="alert">評估未完成，請重試。<button class="retry">重新評估</button></div>`;
+      const reason=/[一-鿿]/.test(e?.message||'')?esc(e.message):'';
+      box.innerHTML = `<div class="err-box" role="alert">評估未完成${reason?'：'+reason:'，請重試'}。<button class="retry">重新評估</button></div>`;
       const retry = box.querySelector('.retry');
       retry.onclick = () => run(fn, view, {focusTab,focusControl});
       if(focusTab||focusControl)retry.focus?.();
@@ -1300,16 +1320,23 @@ async function run(fn, view, {focusTab,focusControl} = {}) {
 }
 
 /* ---------------- 換人時機比對（src/timing_backtest.py 離線模擬產生） ---------------- */
-let timingData = null, timingGeneration = 0;
+let timingData = null, timingGeneration = 0, timingPending = null, timingPendingGeneration = -1;
 async function loadTiming() {
-  if (timingData === null) {
-    const date=HISTORY_DATE, request=++timingGeneration;
+  if (timingData !== null) return timingData;
+  const date=HISTORY_DATE;
+  // 請求仍有效（日期未被切換過）時共用它，避免後發請求讓先發請求回傳 null 而誤報「無法載入」
+  if (timingPending && timingPendingGeneration===timingGeneration) return timingPending;
+  const request=++timingGeneration;
+  const pending=(async()=>{
     try {
       const d=await historyJSON('timing.json',{reload:true,date});
       if(request===timingGeneration)timingData=d.schema_version===2&&d.date===date&&d.season===historySeason&&d.games&&d.threshold===SUGGEST_GAP?d:false;
     } catch { if(request===timingGeneration)timingData=false; }  // 沒有時機資料時，回放照常使用
-  }
-  return timingData;
+    return timingData;
+  })();
+  timingPending=pending; timingPendingGeneration=request;
+  try { return await pending; }
+  finally { if(timingPending===pending){timingPending=null;timingPendingGeneration=-1;} }
 }
 function timingFor(paId) {
   const t = timingData && paId && timingData.games[paId.split('-').slice(0, 2).join('-')]?.[paId];
@@ -1391,8 +1418,8 @@ async function loadHistoryContext(){
 }
 function historicalFatigue(pc,starter,curve){
  if(!starter||!curve?.length)return 0;let result=0;
- for(let i=1;i<curve.length;i++){const [x,y]=curve[i], [prev,v]=curve[i-1];if(pc<=x)return Math.max(0,v+(y-v)*Math.max(0,pc-prev)/(x-prev));}
- if(curve.length<2)return 0;const [x,y]=curve.at(-1),[prev,v]=curve.at(-2);result=y+(y-v)*Math.max(0,pc-x)/(x-prev);return Math.min(0.12,result);
+ for(let i=1;i<curve.length;i++){const [x,y]=curve[i], [prev,v]=curve[i-1];if(pc<=x)return Math.max(0,x===prev?y:v+(y-v)*Math.max(0,pc-prev)/(x-prev));}
+ if(curve.length<2)return 0;const [x,y]=curve.at(-1),[prev,v]=curve.at(-2);result=x===prev?y:y+(y-v)*Math.max(0,pc-x)/(x-prev);return Math.min(0.12,result);
 }
 function renderHistoryContext(){
  const p=historyContext?.teams[$('#reviewTeam').value]?.[historyRole]?.find(p=>p.name===$('#historyPlayer').value),box=$('#historyPlayerContext');if(!p){box.innerHTML='<p>沒有賽前出賽紀錄。</p>';return;}
@@ -1629,8 +1656,8 @@ function renderPAs() {
       <span>${N(p.start_batter||p.batter)}</span>
       ${p.is_ph ? `<span class="chip tag-ph" data-replay-kind="ph">實際代打</span>` : ""}
       ${penChanged.has(p.pa_id) ? `<span class="chip tag-ph" data-replay-kind="pen">實際換投</span>` : ""}
-      ${tm?.penSug ? `<span class="chip tag-sys" data-replay-kind="pen" title="系統建議換上 ${N(tm.penBest)}（${sign(tm.penGain)} 百分點）">建議換投</span>` : ""}
-      ${tm?.phSug ? `<span class="chip tag-sys" data-replay-kind="ph" title="系統建議 ${N(tm.phBest)} 代打（${sign(tm.phGain)} 百分點）">建議代打</span>` : ""}
+      ${tm?.penSug ? `<span class="chip tag-sys" data-replay-kind="pen" title="系統建議換上 ${N(tm.penBest)}（${sign(tm.penGain)} 百分點）">建議換投<span class="sr-only">：換上 ${N(tm.penBest)}，${sign(tm.penGain)} 百分點</span></span>` : ""}
+      ${tm?.phSug ? `<span class="chip tag-sys" data-replay-kind="ph" title="系統建議 ${N(tm.phBest)} 代打（${sign(tm.phGain)} 百分點）">建議代打<span class="sr-only">：${N(tm.phBest)} 代打，${sign(tm.phGain)} 百分點</span></span>` : ""}
       ${historyDisclosure.pa===p.pa_id&&historyDisclosure.outcome?`<span class="mut" style="margin-left:auto;font-size:12px">${esc(resultLabel(p.result))}</span>`:''}</button>`;
   }
   $("#paList").innerHTML = html || '<p class="empty">目前篩選沒有符合的打席，可選「顯示全部」。</p>';
@@ -1823,6 +1850,7 @@ function scoreboardTeams(s) {
 function recommendation(cands) {
   const cur = cands.find((c) => c["角色"] === "現任");
   const bench = cands.filter((c) => c["角色"] === "代打");
+  if(!cur)return {kind:'neutral',title:'沒有現任資料',text:'目前沒有可作為比較基準的現任球員。'};
   if(!bench.length)return {kind:'neutral',title:'目前只評估現任',text:`${cur['球員']} 為比較基準；加入可用代打人選後，才能比較換人差距。`};
   const playable = bench.filter((c) => ['ok','warn'].includes(c["守備"]));
   if (!playable.length) return { kind: "neutral", title: "候選接守資格尚未確認", text: "目前沒有可確認接守的候選比較，請先確認名單與守位。" };
@@ -2233,7 +2261,7 @@ function phTable(R) {
     const d = x["守備"];
     return `<tr data-batter="${esc(x["球員"])}" class="${cur ? "cur" : ""} ${best ? "best-row" : ""} ${keep[i] ? "" : "more-row"}">
       <td class="ncell"><span class="role">${cur ? "現任" : "代打"}</span>${cur?'':comparisonCircle(R,"ph",x["球員"])}${officialPlayerLink(x["球員"])} ${handChip(x["打擊"])}${best ? `<span class="best">估計較佳</span>` : ""}${rowDetailButton(x["球員"])}${cur ? "" : pinchHitPreview(R,x)}
-        <div class="parts">${x["可守"] && x["可守"] !== "-" ? x["可守"].split(",").map((p) => POS[p] || p).join("・") : "無守位紀錄（限 DH）"}</div>${playerNotesDisclosure(R,x["球員"])}${reasonsHtml(batterReasons(x, R))}${mobileRowDetails(x,false)}</td>
+        <div class="parts">${x["可守"] && x["可守"] !== "-" ? x["可守"].split(",").map((p) => esc(posName(p))).join("・") : "無守位紀錄（限 DH）"}</div>${playerNotesDisclosure(R,x["球員"])}${reasonsHtml(batterReasons(x, R))}${mobileRowDetails(x,false)}</td>
       <td class="evaluation-score">${scoreBadge(x["價值分數"], `面對 ${R.situation.pitcher} 的比較池百分位`)}</td>
       <td class="evaluation-value"><span class="mobile-value-label">相對現任</span><div class="vcell"><span class="vnum num ${cls(cur?0:x['相對現任'],.02)}">${cur?'基準':deltaMarkup(x['相對現任'])}</span>${dbar(cur?0:x['相對現任'],0,scale)}</div></td>
       <td class="evaluation-warning"><div class="def"><span class="d ${d}">${d === "ok" ? "✓" : d === "warn" ? "!" : d === "unknown" ? "?" : "✕"}</span><span>${fieldingMessage(x,cur)}</span></div></td>
@@ -2243,7 +2271,7 @@ function phTable(R) {
 }
 
 function rowDetailButton(name) {
-  return `<button type="button" class="row-detail" data-row-detail aria-label="查看 ${N(name)} 的對決">看對決</button>`;
+  return `<button type="button" class="row-detail" data-row-detail aria-label="看對決：${N(name)}">看對決</button>`;
 }
 
 function penTable(R) {
