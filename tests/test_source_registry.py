@@ -19,6 +19,12 @@ class SourceRegistryTests(unittest.TestCase):
                 result=source_registry.fielding_registry(cutoff)
             source_registry.fielding_registry.cache_clear();return result
 
+    def test_missing_source_files_are_reported_instead_of_silently_skipped(self):
+        frames={'ldkrsi/fieldings_2024.csv':[['42','A','Ta','SS',10]]}
+        boxes=[['rebas:CPBL:a','A','Ta','2024-04-01']]
+        with self.assertWarnsRegex(RuntimeWarning,'positions_2025.csv'):
+            self.run_registry(frames,boxes,'2026-01-01')
+
     def test_literal_ids_in_different_sources_never_join_by_themselves(self):
         frames={'ldkrsi/fieldings_2024.csv':[['42','A','Ta','SS',10]],'cpbl/positions_2025.csv':[['42','B','Tb','C',20]]}
         boxes=[['rebas:CPBL:a','A','Ta','2024-04-01'],['rebas:CPBL:b','B','Tb','2025-04-01']]
