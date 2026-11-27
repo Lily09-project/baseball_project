@@ -93,7 +93,7 @@ function clearResult() {
   $("#emptyState").classList.remove("hidden");
   $('.mobile-jump a[href="#result"]').hidden = true;
   $("#evalBtn").disabled = !S.ready;
-  $("#evalBtn").innerHTML = uiIcon("compare") + "評估";
+  $("#evalBtn").innerHTML = S.ready ? uiIcon("compare") + "評估" : '<span class="loading" aria-hidden="true"></span> 載入資料中…';
   syncReviewSteps();
 }
 function invalidateCustom(event) {
@@ -1079,6 +1079,7 @@ async function refreshCustom() {
   try {
     [my, opp] = await Promise.all([team(myName), team(oppName)]);
   } catch (e) {
+    if (token === rosterGeneration && !S.ready) $('#evalBtn').textContent = '資料未載入';
     if (token === rosterGeneration) listError('#formError', '名單載入失敗，請重試。', refreshCustom);
     return;
   }
@@ -1111,7 +1112,7 @@ async function refreshCustom() {
   }
   loadedTeams={my:myName,opp:oppName};
   syncOwnLineup();syncLineupPitcher(myName);autoPos();renderBench();renderPenVisibility();syncPenExited();
-  S.ready=true;$('#evalBtn').disabled=false;if($('#demoBtn'))$('#demoBtn').disabled=false;
+  S.ready=true;$('#evalBtn').disabled=false;$('#evalBtn').innerHTML=uiIcon('compare')+'評估';if($('#demoBtn'))$('#demoBtn').disabled=false;
 
 }
 function renderPenVisibility(searching=false) {

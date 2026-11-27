@@ -150,8 +150,8 @@
             <button type="button" data-view="defense"><svg class="ui-icon" aria-hidden="true"><use href="#icon-ball"/></svg>我方防守・<wbr>評估換投</button>
           </div>
           <div class="row2">
-            <div><label class="f" for="myTeam">我方球隊</label><select id="myTeam"></select></div>
-            <div><label class="f" for="oppTeam">對手球隊</label><select id="oppTeam"></select></div>
+            <div><label class="f" for="myTeam">我方球隊</label><select id="myTeam"><option value="">載入球隊中…</option></select></div>
+            <div><label class="f" for="oppTeam">對手球隊</label><select id="oppTeam"><option value="">載入球隊中…</option></select></div>
           </div>
           <div id="lineupSummary" class="lineup-summary"><span class="lineup-summary-text">自由選擇球員；不需先設定場上名單。</span><span class="lineup-summary-actions"><span class="selection-badge">自由選人</span></span></div>
           <div class="state">
@@ -228,7 +228,7 @@
             </div>
           </div>
 
-          <div id="formError" aria-live="polite"></div><button type="button" class="btn-primary" id="evalBtn" disabled><svg class="ui-icon" aria-hidden="true"><use href="#icon-compare"/></svg>評估</button>
+          <div id="formError" aria-live="polite"></div><button type="button" class="btn-primary" id="evalBtn" disabled><span class="loading" aria-hidden="true"></span> 載入資料中…</button>
         </div>
       </div>
     </div>
@@ -304,6 +304,6 @@
 <script src="backtest.js?v=20261114-2026"></script>
 <script src="bullpen-plan.js?v=20261026-1"></script>
 <script src="bullpen-plan-ui.js?v=availability-20261116"></script>
-<script src="app.js?v=review-fixes-20261126"></script>
+<script src="app.js?v=loading-20261127"></script>
 </body>
 </html>
