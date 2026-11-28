@@ -17,7 +17,7 @@
 <meta property="og:locale" content="zh_TW">
 <meta name="twitter:card" content="summary_large_image">
 <script src="theme.js?v=20261025-v5-id1"></script>
-<link rel="stylesheet" href="style.css?v=workbench-20261128">
+<link rel="stylesheet" href="style.css?v=icons-20261128">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%231e40af'/><path d='M9 9c4 4 4 10 0 14M23 9c-4 4-4 10 0 14' stroke='white' stroke-width='2' fill='none'/></svg>">
 </head>
 <body>
@@ -83,12 +83,12 @@
   <div id="lineupSetup">
   <div class="lineup-tools"><span id="lineupStatus"></span></div>
   <div class="lineup-layout">
-    <section class="card lineup-field-card" aria-label="守備配置"><div class="card-h"><h3>守備配置</h3><button id="lineupSwapField" type="button" aria-pressed="false">互換守位</button><span id="lineupFieldHint" class="mut" role="status">點守位選球員</span></div><div class="lineup-field">
+    <section class="card lineup-field-card" aria-label="守備配置"><div class="card-h"><h3 data-icon="shield">守備配置</h3><button id="lineupSwapField" type="button" aria-pressed="false">互換守位</button><span id="lineupFieldHint" class="mut" role="status">點守位選球員</span></div><div class="lineup-field">
       <svg viewBox="0 0 600 520" aria-hidden="true"><path class="field-grass" d="M300 490 20 210Q300-80 580 210Z"/><path class="field-dirt" d="m300 470-150-150 150-150 150 150Z"/><path class="field-line" d="M60 230 300 470 540 230M300 470 150 320 300 170 450 320Z"/><circle class="field-mound" cx="300" cy="350" r="16"/><path class="field-base" d="m300 464 10 5v9l-10 8-10-8v-9Z"/></svg>
       <button type="button" data-field="LF" style="--x:19%;--y:24%"></button><button type="button" data-field="CF" style="--x:50%;--y:15%"></button><button type="button" data-field="RF" style="--x:81%;--y:24%"></button>
       <button type="button" data-field="SS" style="--x:34%;--y:44%"></button><button type="button" data-field="2B" style="--x:66%;--y:44%"></button><button type="button" data-field="3B" style="--x:19%;--y:62%"></button><button type="button" data-field="1B" style="--x:81%;--y:62%"></button><button type="button" data-field="P" style="--x:50%;--y:66%"></button><button type="button" data-field="C" style="--x:50%;--y:89%"></button>
     </div><div class="lineup-dh"><button type="button" data-field="DH"></button><p class="mut">DH 不占守備位置</p></div></section>
-    <section class="card lineup-order-card" aria-labelledby="lineupOrderTitle"><div class="card-h"><h3 id="lineupOrderTitle">打擊順序</h3><button id="lineupSwapOrder" type="button" aria-pressed="false">互換棒次</button><span id="lineupOrderHint" class="mut" role="status">↑↓ 調整棒次</span></div><div class="card-b"><div class="lineup-pitcher"><span>場上投手</span><button type="button" id="lineupPitcherPick"><strong id="lineupPitcherName">選擇投手</strong><span aria-hidden="true">⌄</span></button></div><div id="lineupRows"></div></div></section>
+    <section class="card lineup-order-card" aria-labelledby="lineupOrderTitle"><div class="card-h"><h3 data-icon="order" id="lineupOrderTitle">打擊順序</h3><button id="lineupSwapOrder" type="button" aria-pressed="false">互換棒次</button><span id="lineupOrderHint" class="mut" role="status">↑↓ 調整棒次</span></div><div class="card-b"><div class="lineup-pitcher"><span>場上投手</span><button type="button" id="lineupPitcherPick"><strong id="lineupPitcherName">選擇投手</strong><span aria-hidden="true">⌄</span></button></div><div id="lineupRows"></div></div></section>
   </div>
 <details class="lineup-unavailable"><summary>記錄已退場／不可用球員</summary><p class="mut">退場與不可用紀錄只保留在目前頁面，關閉或重新整理後重置。</p><div id="lineupUnavailable"></div></details>
   <p id="lineupWarnings" class="mut"></p><div class="lineup-swap-tools"><span id="lineupSwapHint" role="status"></span><button id="lineupSwapCancel" type="button" hidden>取消互換</button><button id="lineupSwapUndo" type="button" hidden>復原互換</button></div><p id="lineupMessage" role="status" aria-live="polite"></p><p id="lineupAlert" class="sr-only" role="alert"></p>
@@ -109,7 +109,7 @@
   <div class="review-heading"><div><h2 id="reviewTitle" tabindex="-1">2026/10/04 單日分析</h2></div><div><label class="f" for="reviewTeam">觀察球隊</label><select id="reviewTeam"></select></div></div>
 <div id="reviewBody" aria-live="polite"><p class="mut">載入中…</p></div>
 <details class="history-background"><summary>查看賽前球員狀態與情境假設</summary>
-  <section class="card"><div class="card-h"><h3>賽季中球員狀態</h3><div class="seg" id="historyRoleSeg"><button type="button" data-history-role="pitchers" class="on" aria-pressed="true">換投準備</button><button type="button" data-history-role="hitters" aria-pressed="false">換打準備</button></div></div><div class="card-b"><label class="f" for="historyPlayer">球員（當日前有出賽紀錄）</label><select id="historyPlayer"></select><div id="historyPitchInputs" class="row2" style="margin-top:12px"><div><label class="f" for="historyPitchCount">模擬本場已投球數</label><input id="historyPitchCount" type="number" min="0" max="160" step="1" value="0"></div><div><label class="f" for="historyStarter">本場角色</label><select id="historyStarter"><option value="0">後援</option><option value="1">先發</option></select></div></div><div id="historyPlayerContext" aria-live="polite"></div></div></section>
+  <section class="card"><div class="card-h"><h3 data-icon="activity">賽季中球員狀態</h3><div class="seg" id="historyRoleSeg"><button type="button" data-history-role="pitchers" class="on" aria-pressed="true">換投準備</button><button type="button" data-history-role="hitters" aria-pressed="false">換打準備</button></div></div><div class="card-b"><label class="f" for="historyPlayer">球員（當日前有出賽紀錄）</label><select id="historyPlayer"></select><div id="historyPitchInputs" class="row2" style="margin-top:12px"><div><label class="f" for="historyPitchCount">模擬本場已投球數</label><input id="historyPitchCount" type="number" min="0" max="160" step="1" value="0"></div><div><label class="f" for="historyStarter">本場角色</label><select id="historyStarter"><option value="0">後援</option><option value="1">先發</option></select></div></div><div id="historyPlayerContext" aria-live="polite"></div></div></section>
           <details class="prefs" id="prefsPanel">
             <summary>我的預設・進階設定</summary>
             <div class="prefs-body">
@@ -135,7 +135,7 @@
 </details>
 <details class="history-method"><summary>比較依據</summary><p id="historyMethodScope"></p><p>球員名單依賽前出賽紀錄推估，換人差值為模型估計。</p></details>
 
-<section class="card"><div class="card-h"><h3>賽前近期配球</h3></div><div class="card-b"><label class="f" for="historyPitcher">投手</label><select id="historyPitcher"></select></div></section><div id="historyPitchChange"></div></div></section>
+<section class="card"><div class="card-h"><h3 data-icon="target">賽前近期配球</h3></div><div class="card-b"><label class="f" for="historyPitcher">投手</label><select id="historyPitcher"></select></div></section><div id="historyPitchChange"></div></div></section>
 
 <div class="matchday-intro">
   <p class="data-scope" id="dataScope">中職一軍 2026 球季 · 模型以 2024–2026 逐球資料訓練</p>
@@ -146,20 +146,20 @@
     <!-- 自訂情境 -->
     <div id="customPanel">
       <div class="card">
-        <div class="card-h"><h2>情境設定</h2></div>
+        <div class="card-h"><h2 data-icon="sliders">情境設定</h2></div>
         <div class="card-b">
           <div class="seg full" id="viewSeg" role="group" aria-label="評估方向">
             <button type="button" data-view="offense" class="on"><svg class="ui-icon" aria-hidden="true"><use href="#icon-bat"/></svg>我方進攻・<wbr>評估代打</button>
             <button type="button" data-view="defense"><svg class="ui-icon" aria-hidden="true"><use href="#icon-ball"/></svg>我方防守・<wbr>評估換投</button>
           </div>
           <div class="row2">
-            <div><label class="f" for="myTeam">我方球隊</label><select id="myTeam"><option value="">載入球隊中…</option></select></div>
-            <div><label class="f" for="oppTeam">對手球隊</label><select id="oppTeam"><option value="">載入球隊中…</option></select></div>
+            <div><label class="f" data-icon="flag" for="myTeam">我方球隊</label><select id="myTeam"><option value="">載入球隊中…</option></select></div>
+            <div><label class="f" data-icon="flag" for="oppTeam">對手球隊</label><select id="oppTeam"><option value="">載入球隊中…</option></select></div>
           </div>
           <div id="lineupSummary" class="lineup-summary"><span class="lineup-summary-text">自由選擇球員；不需先設定場上名單。</span><span class="lineup-summary-actions"><span class="selection-badge">自由選人</span></span></div>
           <div class="state">
             <div class="state-control">
-              <label class="f" id="inningLabel">局數</label>
+              <label class="f" data-icon="clock" id="inningLabel">局數</label>
               <div class="stepper" role="group" aria-labelledby="inningLabel">
                 <button type="button" id="innDown" aria-label="減一局">−</button>
                 <span class="val num" id="innVal" aria-live="polite">1</span>
@@ -169,10 +169,10 @@
                   <button type="button" data-half="home">下</button>
                 </div>
               </div>
-              <div class="out-setting"><span class="f">出局數</span><div class="outs" id="outs"><button type="button" data-o="1" aria-label="1 出局"></button><button type="button" data-o="2" aria-label="2 出局"></button></div><output id="outsValue">0 出局</output></div>
+              <div class="out-setting"><span class="f" data-icon="outs">出局數</span><div class="outs" id="outs"><button type="button" data-o="1" aria-label="1 出局"></button><button type="button" data-o="2" aria-label="2 出局"></button></div><output id="outsValue">0 出局</output></div>
             </div>
             <div class="base-setting">
-              <label class="f" id="basesLabel">壘上跑者</label>
+              <label class="f" data-icon="diamond" id="basesLabel">壘上跑者</label>
               <svg class="diamond" viewBox="0 0 120 100" id="diamond">
                 <path d="M60 92 L100 52 L60 12 L20 52 Z" fill="none" stroke="var(--line)" stroke-width="2"/>
                 <rect class="base" data-b="2" x="51" y="3" width="18" height="18" transform="rotate(45 60 12)" fill="var(--panel)" stroke="var(--muted)" stroke-width="2"/>
@@ -184,20 +184,20 @@
             </div>
           </div>
           <div class="row2 score-controls">
-            <div><label class="f" for="myScore">我方得分</label><div class="score-stepper"><button type="button" data-score="myScore" data-delta="-1" aria-label="我方減一分">−</button><input type="number" id="myScore" min="0" step="1" value="0"><button type="button" data-score="myScore" data-delta="1" aria-label="我方加一分">+</button></div></div>
-            <div><label class="f" for="oppScore">對手得分</label><div class="score-stepper"><button type="button" data-score="oppScore" data-delta="-1" aria-label="對手減一分">−</button><input type="number" id="oppScore" min="0" step="1" value="0"><button type="button" data-score="oppScore" data-delta="1" aria-label="對手加一分">+</button></div></div>
+            <div><label class="f" data-icon="score" for="myScore">我方得分</label><div class="score-stepper"><button type="button" data-score="myScore" data-delta="-1" aria-label="我方減一分">−</button><input type="number" id="myScore" min="0" step="1" value="0"><button type="button" data-score="myScore" data-delta="1" aria-label="我方加一分">+</button></div></div>
+            <div><label class="f" data-icon="score" for="oppScore">對手得分</label><div class="score-stepper"><button type="button" data-score="oppScore" data-delta="-1" aria-label="對手減一分">−</button><input type="number" id="oppScore" min="0" step="1" value="0"><button type="button" data-score="oppScore" data-delta="1" aria-label="對手加一分">+</button></div></div>
           </div>
 
           <p id="extraInningHint" class="mut hidden">延長局預設二壘有人；最多 12 局。</p>
           <!-- 進攻 -->
           <div id="offenseFields">
-            <div><label class="f" for="oppPitcher">對方投手</label><select id="oppPitcher"></select></div>
+            <div><label class="f" data-icon="ball" for="oppPitcher">對方投手</label><select id="oppPitcher"></select></div>
             <div class="row2" style="margin-top:14px">
-              <div><label class="f" for="dueBatter">輪到的打者</label><select id="dueBatter"></select></div>
-              <div><label class="f" for="duePos">目前守位</label><select id="duePos" aria-describedby="duePosLock"></select><p id="duePosLock" class="lock-note" hidden>依場上名單固定</p></div>
+              <div><label class="f" data-icon="bat" for="dueBatter">輪到的打者</label><select id="dueBatter"></select></div>
+              <div><label class="f" data-icon="shield" for="duePos">目前守位</label><select id="duePos" aria-describedby="duePosLock"></select><p id="duePosLock" class="lock-note" hidden>依場上名單固定</p></div>
             </div>
             <div style="margin-top:14px">
-              <label class="f" id="benchLabel">板凳可用野手（請確認今日可上場）</label>
+              <label class="f" data-icon="users" id="benchLabel">板凳可用野手（請確認今日可上場）</label>
               <div id="benchAvailability" class="today-availability" aria-live="polite"></div>
               <label class="f search-label" for="benchFilter">搜尋板凳球員</label><input type="search" id="benchFilter" placeholder="姓名或 2026 背號…">
               <button type="button" class="link bench-toggle-all" id="benchToggleAll">全部展開</button>
@@ -208,18 +208,18 @@
 
           <!-- 防守 -->
           <div id="defenseFields" class="hidden">
-            <div><label class="f" for="myPitcher">我方場上投手</label><select id="myPitcher" aria-describedby="myPitcherLock"></select><p id="myPitcherLock" class="lock-note" hidden>依場上名單固定；自由選人請按上方「一般使用者」。</p></div>
+            <div><label class="f" data-icon="ball" for="myPitcher">我方場上投手</label><select id="myPitcher" aria-describedby="myPitcherLock"></select><p id="myPitcherLock" class="lock-note" hidden>依場上名單固定；自由選人請按上方「一般使用者」。</p></div>
             <div class="row2" style="margin-top:14px">
-              <div><label class="f" for="pitchCount">本場已投球數</label><input type="number" id="pitchCount" min="0" max="160" value="0"></div>
-              <div><label class="f" id="roleLabel">本場角色</label><div class="seg full" id="roleSeg" role="group" aria-labelledby="roleLabel"><button type="button" data-r="1">先發</button><button type="button" data-r="0" class="on">後援</button></div></div>
+              <div><label class="f" data-icon="gauge" for="pitchCount">本場已投球數</label><input type="number" id="pitchCount" min="0" max="160" value="0"></div>
+              <div><label class="f" data-icon="user" id="roleLabel">本場角色</label><div class="seg full" id="roleSeg" role="group" aria-labelledby="roleLabel"><button type="button" data-r="1">先發</button><button type="button" data-r="0" class="on">後援</button></div></div>
             </div>
             <p class="mut" id="pcHint"></p>
             <div style="margin-top:14px">
-              <label class="f" id="nextBattersLabel">對手接下來 3 棒</label>
+              <label class="f" data-icon="list" id="nextBattersLabel">對手接下來 3 棒</label>
               <div class="next-batters" role="group" aria-labelledby="nextBattersLabel"><div class="next-batter"><label for="nb1">第 1 棒</label><select id="nb1"></select><span class="next-hand" data-next-hand="nb1"></span></div><div class="next-batter"><label for="nb2">第 2 棒</label><select id="nb2"></select><span class="next-hand" data-next-hand="nb2"></span></div><div class="next-batter"><label for="nb3">第 3 棒</label><select id="nb3"></select><span class="next-hand" data-next-hand="nb3"></span></div></div>
             </div>
             <div style="margin-top:14px">
-              <label class="f" id="penLabel">牛棚可用投手（請確認今日可上場）</label>
+              <label class="f" data-icon="users" id="penLabel">牛棚可用投手（請確認今日可上場）</label>
               <div id="penAvailability" class="today-availability" aria-live="polite"></div>
               <label class="f search-label" for="penFilter">搜尋牛棚投手</label><input type="search" id="penFilter" placeholder="姓名或 2026 背號…">
               <div id="pitcherGroups"></div>
@@ -239,14 +239,14 @@
     <!-- 歷史回放 -->
     <div id="replayPanel" class="hidden">
       <div class="card">
-        <div class="card-h"><h2>選擇比賽</h2><span class="hint" data-runtime-date>2026/10/04</span></div>
+        <div class="card-h"><h2 data-icon="calendar">選擇比賽</h2><span class="hint" data-runtime-date>2026/10/04</span></div>
         <div class="card-b">
           <div><label class="f" for="rpTeam">觀察球隊</label><select id="rpTeam"></select></div>
           <div class="list" id="gameList"></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-h"><h2 id="replayPaTitle" tabindex="-1">選擇打席</h2></div>
+        <div class="card-h"><h2 data-icon="list" id="replayPaTitle" tabindex="-1">選擇打席</h2></div>
         <div class="card-b">
           <div class="replay-filters" role="group" aria-label="打席篩選">
             <label class="toggle"><input type="checkbox" id="lateOnly" checked> 6 局起</label>
@@ -315,6 +315,6 @@
 <script src="backtest.js?v=20261114-2026"></script>
 <script src="bullpen-plan.js?v=20261026-1"></script>
 <script src="bullpen-plan-ui.js?v=availability-20261116"></script>
-<script src="app.js?v=loading-20261127"></script>
+<script src="app.js?v=icons-20261128"></script>
 </body>
 </html>
