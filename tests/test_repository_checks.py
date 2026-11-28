@@ -71,6 +71,20 @@ class RepositoryCheckTests(unittest.TestCase):
             flagged = sorted(e['file'] for e in result['errors'])
             self.assertEqual(flagged, ['data/cpbl/positions_2025.csv', 'docs/big.json', 'docs/leak.csv', 'docs/model.pkl'])
 
+    def test_tracked_files_reject_local_archives_and_raw_inputs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            local_files = {
+                '多餘資料/backup.json': '{}', 'data/rebas/2026/game.json': '{}',
+                'data/rebas-fielding/positions_2026.csv': 'id',
+                'data/ldkrsi/fieldings_2024.csv': 'id', 'output/qa/baseline/model.json': '{}',
+            }
+            allowed = {
+                '多餘資料/README.md': '# Archive', 'data/ldkrsi/LICENSE': 'MIT',
+                'output/qa/baseline/engine.js': 'const baseline = {};', 'docs/data/model.json': '{}',
+            }
+            result = self.tracked(folder, {**local_files, **allowed})
+            self.assertEqual(sorted(e['file'] for e in result['errors']), sorted(local_files))
+
     def test_tracked_files_reject_old_project_names_and_local_paths(self):
         bad_path = 'C:' + chr(92) + 'Users' + chr(92) + 'someone'
         with tempfile.TemporaryDirectory() as folder:

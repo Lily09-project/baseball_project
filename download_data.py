@@ -53,8 +53,10 @@ def main():
     files["LICENSE"] = fetch(LDKRSI + "LICENSE")
     for name, data in files.items():
         target = os.path.join(out, name)
-        if os.path.exists(target) and open(target, "rb").read() == data:
-            continue  # 內容相同就不改寫（LICENSE 已被追蹤）
+        if os.path.exists(target):
+            with open(target, "rb") as existing:
+                if existing.read() == data:
+                    continue  # 內容相同就不改寫（LICENSE 已被追蹤）
         write_atomic(target, data)
     export_fielding_2026()
     print("完成。若有權使用 2025 守位資料，可另放入 data/cpbl/positions_2025.csv，來源見「資料來源.md」。")

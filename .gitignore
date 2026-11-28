@@ -80,12 +80,13 @@ output/replay-evidence-20261116/
 多餘資料/*
 !多餘資料/README.md
 
-# 本機輸出一律不追蹤（只有 output/qa/baseline/ 的測試基準是追蹤的）。
-# 這能避免 `git add -A` 把原始資料、候選模型與受限制的守位資料副本帶進提交。
+# 本機輸出一律不追蹤，僅保留 JavaScript 回歸測試使用的基準引擎。
 output/*
 !output/qa/
 output/qa/*
 !output/qa/baseline/
+output/qa/baseline/*
+!output/qa/baseline/engine.js
 
 # 受限制的中職守位資料，任何位置的副本都不追蹤
 **/positions_2025.csv

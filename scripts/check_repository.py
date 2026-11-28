@@ -56,6 +56,8 @@ PUBLISHED_MAX_BYTES = 5_000_000
 FORBIDDEN_TEXT = ('Da-Xiong-Chen', 'C:' + chr(92) + 'Users' + chr(92), 'C:/Users/', '/Users/')
 TEXT_SUFFIXES = {'.md', '.py', '.js', '.cjs', '.html', '.css', '.yml', '.yaml', '.txt', '.bat', '.json'}
 NOT_SCANNED = {'scripts/check_repository.py', 'tests/test_repository_checks.py'}
+LOCAL_ONLY_DIRECTORIES = ('多餘資料/', 'data/rebas/', 'data/rebas-fielding/', 'data/ldkrsi/', 'output/')
+LOCAL_DIRECTORY_EXCEPTIONS = {'多餘資料/README.md', 'data/ldkrsi/LICENSE', 'output/qa/baseline/engine.js'}
 
 
 def check_tracked_files(root):
@@ -68,8 +70,10 @@ def check_tracked_files(root):
     errors = []
     for name in names:
         path = root / name
+        if name.startswith(LOCAL_ONLY_DIRECTORIES) and name not in LOCAL_DIRECTORY_EXCEPTIONS:
+            errors.append({'file': name, 'issue': 'local data, archive or generated output must not be tracked'})
         if not path.is_file(): continue
-        if Path(name).name == 'positions_2025.csv':
+        if Path(name).name.casefold() == 'positions_2025.csv':
             errors.append({'file': name, 'issue': 'restricted fielding data must not be tracked'})
         if name.startswith('docs/'):
             if path.suffix.lower() in PUBLISHED_FORBIDDEN_SUFFIXES:
