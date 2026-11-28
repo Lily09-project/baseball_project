@@ -21,7 +21,7 @@ Python 測試分兩份清單，都在 `scripts/run_ci.py`：`FIXTURE_TESTS` 在�
 
 ## 完整資料驗收
 
-使用 2024–2026 原始資料執行 `python -m unittest discover -s tests`。有重算需求時，另依[八日回放驗收](qa/website-roadmap-20261115/README.md)配置月初權重、日期批次與報告目錄，再跑 `tests/verify_history_day.py`。以實際瀏覽器檢查發布資產及操作流程；候選模型效果依[模型實驗](qa/model-horizons-20261113/README.md)的方法另行評估。
+完整 Python 驗收需要 2024–2026 原始資料，以及舊版回放測試使用的 2024–2025 v5 權重。若資料與權重放在工作目錄之外，先設定 `BASEBALL_DATA_ROOT`（包含 `rebas/` 的資料根目錄）、`BASEBALL_MODEL_DIR`（舊版權重目錄）及 `BASEBALL_BATCH_CONTEXT`（舊批次的 `active-batch.json`），再執行 `python -m unittest discover -s tests`。有重算需求時，另依[八日回放驗收](qa/website-roadmap-20261115/README.md)配置月初權重、日期批次與報告目錄，再跑 `tests/verify_history_day.py`。以實際瀏覽器檢查發布資產及操作流程；候選模型效果依[模型實驗](qa/model-horizons-20261113/README.md)的方法另行評估。
 
 目前不設定或變更主分支保護規則；維護者可在 PR 檢查實際成功後，再決定是否將其設為合併條件。新工作流程第一次是否需要核准執行，依 GitHub 專案設定，不預先宣稱雲端 CI 已通過。
 

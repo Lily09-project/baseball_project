@@ -178,7 +178,7 @@ python start_server.py       # 開啟 http://127.0.0.1:8000（Windows 也可雙�
 
 ```bash
 python scripts/run_ci.py                 # 前端、靜態資料、文件、追蹤檔案檢查與 31 份 Python fixture 測試（需 Node.js）
-python -m unittest discover -s tests     # 完整 Python：需三季逐球資料
+python -m unittest discover -s tests     # 完整 Python：先依 CI 說明設定資料與舊批次權重
 ```
 
 ## 專案結構與文件
