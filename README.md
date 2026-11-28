@@ -11,14 +11,14 @@
 
 | 要找的內容 | 最新入口 |
 |---|---|
-| 最新網站、模型與資料驗收 | [11/21 視覺精修與專案整理](docs/qa/visual-refresh-20261121/README.md) · [候選名單、接守與新球季演練](docs/qa/replay-evidence-20261116/README.md) · [專案收尾與發布驗收](docs/project-closeout-20261116.md) · [2026 球季資料](docs/qa/data-2026-20261114/README.md) |
+| 最新網站、模型與資料驗收 | [11/21–11/28 視覺精修與專案整理](docs/qa/visual-refresh-20261121/README.md) · [候選名單、接守與新球季演練](docs/qa/replay-evidence-20261116/README.md) · [專案收尾與發布驗收](docs/project-closeout-20261116.md) · [2026 球季資料](docs/qa/data-2026-20261114/README.md) |
 | PR 檢查與瀏覽器異常操作 | [現行發布驗收](docs/project-closeout-20261116.md) · [CI 執行方式](docs/ci-validation.md) |
 | 程式碼審查與修正 | [11/26 完整 code review 與稽核修正](docs/qa/visual-refresh-20261121/README.md#1126-後續完整-code-review-與使用者面向稽核後的修正) · [回放連結與本機 API](docs/project-closeout-20261116.md) · [11/6 整合審查](docs/qa/release-foundation-20261106/README.md) |
 | 後續模型及資料工作 | [季中迭代的驗收方法](docs/qa/season-iteration-2026/README.md) · [資料來源與守位](資料來源.md) |
 | 最新模型實驗 | [2026 換投時機回測](docs/qa/timing-2026/README.md) · [疲勞調整與勝率校準](docs/qa/website-roadmap-20261115/README.md) · [季中迭代](docs/qa/season-iteration-2026/README.md) |
 | 模型與身份基準 | [v5 訓練指南](docs/training-v5.md) · [三季資料驗收](docs/qa/data-2026-20261114/README.md) |
 
-**版本紀錄**　已完成 8 個比賽日回放、球隊調度與 2026 模型驗收，並陸續補上候選、接守與球隊名單修正，以及換人規則、情境載入及退場紀錄重置。11/26–11/27 完成一輪完整 code review 與使用者面向稽核：回放跳轉、評估失敗原因、損壞名單備份、本機 API 防護與 CI 測試擴充，以及首頁載入中提示與單日分析圓點的點擊範圍。可依[本機執行](#本機執行)預覽，上線狀態見[部署紀錄](https://github.com/Lily09-project/baseball_project/actions)。
+**版本紀錄**　已完成 8 個比賽日回放、球隊調度與 2026 模型驗收，並陸續補上候選、接守與球隊名單修正，以及換人規則、情境載入及退場紀錄重置。11/26–11/27 完成一輪完整 code review 與使用者面向稽核：回放跳轉、評估失敗原因、損壞名單備份、本機 API 防護與 CI 測試擴充，以及首頁載入中提示與單日分析圓點的點擊範圍。11/28 精修介面外觀：轉播式記分板（隊色標記、上下半局箭頭、進攻方底線）、「與現任比較」標出領先候選，標題與情境欄位加上線條圖示。可依[本機執行](#本機執行)預覽，上線狀態見[部署紀錄](https://github.com/Lily09-project/baseball_project/actions)。
 
 | 項目 | 內容 |
 |---|---|
@@ -26,7 +26,7 @@
 | 隊名／成員 | 一球兩面｜蘇櫟、陳信安 |
 | 資料 | 2024–2026 中職一軍例行賽逐球紀錄（Rebas Open Data）與歷年守位 |
 
-![網站首頁與代打評估：8 局上統一 1:2 落後、一出局二壘有人，左投魔力藍對上左打林佳緯，系統比較板凳候選，最佳候選陳鏞基未達提示門檻](assets/readme/evaluation.png)
+![網站首頁與代打評估：8 局上統一 1:2 落後、一出局二壘有人，左投魔力藍對上左打林佳緯。記分板以隊色標示兩隊，系統比較板凳候選，最佳候選陳鏞基未達提示門檻](assets/readme/evaluation.png)
 
 ## 目錄
 
