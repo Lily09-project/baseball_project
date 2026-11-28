@@ -1833,7 +1833,7 @@ function comparisonPanel(R, selected, tab) {
       <p class="comparison-samples mut">樣本：候選 ${countNumber(x['樣本球數'])}／現任 ${countNumber(current['樣本球數'])} 球</p>
       ${x['資料警示']||current['資料警示']?`<p class="compare-warning">${esc([x['資料警示'],current['資料警示']].filter(Boolean).join('；'))}</p>`:''}</details></article>`;
   };
-  return `<div class="card comparison"><div class="card-h"><h2>現任與候選比較</h2><span class="hint">基準：${N(current[nameKey])}</span><a class="comparison-back" href="#evaluationSection">返回選人 ↑</a></div><div class="card-b">
+  return `<div class="card comparison"><div class="card-h"><h2 data-icon="scale">現任與候選比較</h2><span class="hint">基準：${N(current[nameKey])}</span><a class="comparison-back" href="#evaluationSection">返回選人 ↑</a></div><div class="card-b">
     <p class="mut">${pen ? `對上接下來 ${R.bullpen.next.length} 棒。` : '同一投手、同一局勢。'}</p>
     <p class="compare-limit mut" role="status">已選 ${choices.length}/${COMPARISON_LIMIT}${comparisonNotices.get(R)?.get(tab)?.message?` · ${N(comparisonNotices.get(R).get(tab).message)}`:''}</p>
     <div class="compare-chips">${choices.map(r=>`<button type="button" data-remove-compare="${esc(r[nameKey])}" aria-label="移除 ${N(r[nameKey])} 的比較">${N(r[nameKey])} <span aria-hidden="true">×</span></button>`).join('')}</div>
@@ -1843,7 +1843,7 @@ const SUGGEST_GAP = 1;
 /* 記分板依棒球慣例固定客隊在左、主隊在右，以「攻」標示目前進攻方，不隨上下半局交換位置 */
 function scoreboardTeams(s) {
   const awayBats=s.half!=='home';
-  const team=(name,score,batting,fallback)=>`<div class="sb-team${batting?' at-bat':''}"><div class="t">${esc(name||fallback)}${batting?'<span class="sb-bat">攻</span>':''}</div><div class="s num">${score}</div></div>`;
+  const team=(name,score,batting,fallback)=>`<div class="sb-team${batting?' at-bat':''}" data-team="${esc(name||'')}"><div class="t">${esc(name||fallback)}${batting?'<span class="sb-bat">攻</span>':''}</div><div class="s num">${score}</div></div>`;
   return awayBats
     ? team(s.bat_team,s.bat_score,true,'進攻方')+'<div class="sb-vs">:</div>'+team(s.fld_team,s.fld_score,false,'防守方')
     : team(s.fld_team,s.fld_score,false,'防守方')+'<div class="sb-vs">:</div>'+team(s.bat_team,s.bat_score,true,'進攻方');
@@ -1895,7 +1895,7 @@ async function mountFieldingPlans(R,pa,tab=S.tab||'ph'){
     if(data.schema_version!==1||data.date!==HISTORY_DATE||data.status!=='conditional_only')throw Error('schema');
     const plans=Object.values(data.plans[pa]||{}).filter(p=>p.requires_confirmation===true&&R.candidates.some(c=>c['角色']==='代打'&&c['球員']===p.incoming));
     if(!plans.length)return;
-    box.innerHTML=`<section class="card"><div class="card-h"><h2>條件式防守改位備案</h2></div><div class="card-b"><p>改位備案須確認資格，未納入推薦。</p>${plans.map(p=>`<details><summary>${N(p.incoming)} 代打後接守${esc(POS[p.incoming_position])}</summary><div class="tbl-wrap"><table class="t"><thead><tr><th>球員</th><th>推估目前守位</th><th>備案守位</th></tr></thead><tbody><tr><td>${N(p.incoming)}</td><td>板凳</td><td>${esc(POS[p.incoming_position])}</td></tr>${p.moves.map(m=>`<tr><td>${N(m.player)}</td><td>${esc(POS[m.from_position])}</td><td>${esc(POS[m.to_position])}</td></tr>`).join('')}</tbody></table></div><p>保留 DH：${N(p.retained_dh)}。依 ${esc(p.cutoff)} 前守位紀錄；需確認實際守位、登錄與退場資格。</p></details>`).join('')}</div></section>`;
+    box.innerHTML=`<section class="card"><div class="card-h"><h2 data-icon="shield">條件式防守改位備案</h2></div><div class="card-b"><p>改位備案須確認資格，未納入推薦。</p>${plans.map(p=>`<details><summary>${N(p.incoming)} 代打後接守${esc(POS[p.incoming_position])}</summary><div class="tbl-wrap"><table class="t"><thead><tr><th>球員</th><th>推估目前守位</th><th>備案守位</th></tr></thead><tbody><tr><td>${N(p.incoming)}</td><td>板凳</td><td>${esc(POS[p.incoming_position])}</td></tr>${p.moves.map(m=>`<tr><td>${N(m.player)}</td><td>${esc(POS[m.from_position])}</td><td>${esc(POS[m.to_position])}</td></tr>`).join('')}</tbody></table></div><p>保留 DH：${N(p.retained_dh)}。依 ${esc(p.cutoff)} 前守位紀錄；需確認實際守位、登錄與退場資格。</p></details>`).join('')}</div></section>`;
   }catch{if(box=== $('#fieldingPlans')&&S.last===R&&S.pa===pa&&(S.tab||'ph')===tab)box.innerHTML='<p class="mut">改位備案暫時無法載入；現有估計與未確認資格標記維持原樣。</p>';}
 }
 function decisionQuickCompare(R, kind) {
@@ -1928,13 +1928,13 @@ function decisionQuickCompare(R, kind) {
     const actions=i&&pitching&&R.view!=='replay'?`<div class="quick-plan-actions">
       <button type="button" class="link" data-plan-pitcher="${esc(row[name])}" data-plan-slot="A">帶入方案 A</button>
       <button type="button" class="link" data-plan-pitcher="${esc(row[name])}" data-plan-slot="B">帶入方案 B</button></div>`:'';
-    return `<div class="quick-candidate"><span>${i?`候選 ${i}`:'現任'}</span><strong>${N(row[name])}</strong>
+    return `<div class="quick-candidate${i?(i===1&&row[value]>0?' is-lead':''):' is-current'}"><span>${i?`候選 ${i}`:'現任'}</span><strong>${N(row[name])}</strong>
       <div>${i?`<b class="num ${cls(row[value],0)}">${sign(row[value])}</b> 百分點`:'續用基準'}</div>
       ${note?`<small>${note}</small>`:''}${workload}${actions}</div>`;
   });
   const gap=candidates.length===2?candidates[0][value]-candidates[1][value]:null;
   const difference=gap===null?'':`<p class="quick-gap">前兩位候選相差 ${gap>0&&gap<0.01?'不到 0.01':gap.toFixed(2)} 百分點</p>`;
-  return `<section class="decision-fast-read" aria-label="與現任比較"><h2>與現任比較</h2>${difference}<div class="quick-candidates">${cards.join('')}</div></section>`;
+  return `<section class="decision-fast-read" aria-label="與現任比較"><h2 data-icon="scale">與現任比較</h2>${difference}<div class="quick-candidates">${cards.join('')}</div></section>`;
 }
 
 function renderResult(preserveTabs = false) {
@@ -1963,7 +1963,7 @@ function renderResult(preserveTabs = false) {
     </div>`:''}
     <div class="scoreboard">
       <div class="sb-top">
-      <div class="sb-inning num">${s.inning}<small>局${halfZh}</small></div>
+      <div class="sb-inning num" data-half="${s.half==='home'?'home':'away'}">${s.inning}<small>局${halfZh}</small></div>
       <div class="sb-score">
         ${scoreboardTeams(s)}
       </div>
@@ -2043,7 +2043,7 @@ function renderResult(preserveTabs = false) {
   const tab = S.tab || (view === "defense" ? "pen" : "ph");
   html += `<div class="card evaluation-card" id="evaluationSection" tabindex="-1">`;
   if (showTabs) html += `<div class="tabs"><button data-t="ph" class="${tab === "ph" ? "on" : ""}">代打評估（進攻方）</button><button data-t="pen" class="${tab === "pen" ? "on" : ""}">換投評估（防守方）</button></div>`;
-  else html += `<div class="card-h"><h2>${view === "defense" ? "換投評估" : "代打評估"}</h2><span class="hint">${view === "defense" ? "" : ""}</span></div>`;
+  else html += `<div class="card-h"><h2 data-icon="chart">${view === "defense" ? "換投評估" : "代打評估"}</h2><span class="hint">${view === "defense" ? "" : ""}</span></div>`;
   html += `<p class="eligibility-note">${R.view==='replay'?'歷史名單與守位為推估；':''}換人前請確認上場資格。</p>`;
   html += resultScope(R,activeTab);
   html += `<nav class="evaluation-nav" aria-label="評估結果導航"><span class="mut">勾選球員加入比較</span><a class="link" href="#candidateCompare">${uiIcon("compare")}比較球員 <span id="compareSelectionCount">${comparisonNames(R,activeTab).size}／${COMPARISON_LIMIT}</span><span aria-hidden="true">↓</span></a></nav><div class="tbl-wrap" tabindex="0" role="region" aria-label="球員評估表，可左右捲動">${activeTab === "pen" ? penTable(R) : phTable(R)}</div></div>`;
@@ -2303,7 +2303,7 @@ function mixCard(R) {
     const groups = GROUPS.map(g => ({g, hi:cells[g+'高中'] || 0, lo:cells[g+'低'] || 0})).sort((a,b) => (b.hi+b.lo)-(a.hi+a.lo));
     return `<p class="mix-count">有效樣本 ${mix[h].n} 球 · 主要球種：${esc(groups[0].g)}${groups[1].hi+groups[1].lo > 0 ? `、${esc(groups[1].g)}` : ''}</p><div class="arsenal-grid">${groups.map(({g,hi,lo}) => `<article class="arsenal-pitch" style="--pitch-color:${GROUP_COLOR[g]}"><h3>${esc(g)}</h3><strong class="num">${((hi+lo)*100).toFixed(1)}<small>%</small></strong><div class="arsenal-meter" aria-hidden="true"><i style="width:${(hi+lo)*100}%"></i></div><p>中高區 ${(hi*100).toFixed(1)}% · 低球 ${(lo*100).toFixed(1)}%</p></article>`).join('')}</div>`;
   };
-  return `<section class="card arsenal-card"><div class="card-h"><h2>${N(R.situation.pitcher)} 的球路</h2><div class="mix-switch" role="group" aria-label="球路面對的打者"><button type="button" data-mix-hand="R" aria-pressed="${defaultHand==='R'}">對右打</button><button type="button" data-mix-hand="L" aria-pressed="${defaultHand==='L'}">對左打</button></div></div><div class="card-b"><div data-mix-panel="R" ${defaultHand==='R'?'':'hidden'}>${panel('R')}</div><div data-mix-panel="L" ${defaultHand==='L'?'':'hidden'}>${panel('L')}</div><p class="mix-count">四類球種的模型配球估計；高低區為比例分類。</p></div></section>`;
+  return `<section class="card arsenal-card"><div class="card-h"><h2 data-icon="ball">${N(R.situation.pitcher)} 的球路</h2><div class="mix-switch" role="group" aria-label="球路面對的打者"><button type="button" data-mix-hand="R" aria-pressed="${defaultHand==='R'}">對右打</button><button type="button" data-mix-hand="L" aria-pressed="${defaultHand==='L'}">對左打</button></div></div><div class="card-b"><div data-mix-panel="R" ${defaultHand==='R'?'':'hidden'}>${panel('R')}</div><div data-mix-panel="L" ${defaultHand==='L'?'':'hidden'}>${panel('L')}</div><p class="mix-count">四類球種的模型配球估計；高低區為比例分類。</p></div></section>`;
 }
 function bindMixSwitch() {
   $$('[data-mix-hand]').forEach(button => button.onclick = () => {
@@ -2326,7 +2326,7 @@ async function showDetail(batter, pitcher, tr, updateComparison = true) {
   // Detail browsing is independent of the two-candidate comparison selection.
   mountPitchChange(pitcher); // Independent of a failing eight-cell detail request.
   const box = $("#detail");
-  $('#pitchArsenal').innerHTML=`<section class="card"><div class="card-h"><h2>${N(pitcher)} 的球路</h2></div><p class="card-b">載入中…</p></section>`;
+  $('#pitchArsenal').innerHTML=`<section class="card"><div class="card-h"><h2 data-icon="ball">${N(pitcher)} 的球路</h2></div><p class="card-b">載入中…</p></section>`;
   box.innerHTML = `<div class="card" style="margin-top:16px"><div class="card-b"><span class="loading"></span></div></div>`;
   try {
     const d = await api(`api/detail?batter=${encodeURIComponent(batter)}&pitcher=${encodeURIComponent(pitcher)}&date=${S.last.model_cutoff}`);
@@ -2345,7 +2345,7 @@ async function showDetail(batter, pitcher, tr, updateComparison = true) {
         <div class="k num">${c.usage>0&&c.usage<.01?"<1%":(c.usage*100).toFixed(0)+"%"}</div>
         <div class="w num ${wd > 0.5 ? "neg" : wd < -0.5 ? "pos" : "mut"}">揮空 ${sign(wd,1)}</div></div>`;
     };
-    box.innerHTML = `<div class="card" style="margin-top:16px"><div class="card-h"><h2>${N(d.batter)} vs ${N(d.pitcher)}</h2>
+    box.innerHTML = `<div class="card" style="margin-top:16px"><div class="card-h"><h2 data-icon="swap">${N(d.batter)} vs ${N(d.pitcher)}</h2>
       <span class="hint">${d.bhand === "L" ? "左" : "右"}打 vs ${d.phand === "L" ? "左" : "右"}投</span></div><div class="card-b">
       <div class="heat"><div></div><div class="hh">中高區</div><div class="hh">低球</div>
         ${GROUPS.map((g) => `<div class="rl">${g}</div>${tile(g + "高中")}${tile(g + "低")}`).join("")}</div>
@@ -2357,7 +2357,7 @@ async function showDetail(batter, pitcher, tr, updateComparison = true) {
       </div></div></div>`;
   } catch (e) {
     if (token !== detailGeneration || box !== $("#detail")) return;
-    $('#pitchArsenal').innerHTML=`<section class="card"><div class="card-h"><h2>${N(pitcher)} 的球路</h2></div><p class="card-b">此對決資料未提供，請重新選取。</p></section>`;
+    $('#pitchArsenal').innerHTML=`<section class="card"><div class="card-h"><h2 data-icon="ball">${N(pitcher)} 的球路</h2></div><p class="card-b">此對決資料未提供，請重新選取。</p></section>`;
     box.innerHTML = `<div class="err-box" style="margin-top:16px">此對決明細未提供或載入失敗，請重新選取。</div>`;
   }
 }

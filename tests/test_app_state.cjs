@@ -1217,7 +1217,8 @@ test('scoreboard keeps the away team on the left in both halves and marks the ba
  const top=f.eval("scoreboardTeams({half:'away',bat_team:'A',bat_score:4,fld_team:'H',fld_score:3})");
  const bottom=f.eval("scoreboardTeams({half:'home',bat_team:'H',bat_score:3,fld_team:'A',fld_score:4})");
  for(const html of [top,bottom])assert.ok(html.indexOf('>A')<html.indexOf('>H'),'away team first');
- assert.match(top,/at-bat"><div class="t">A<span class="sb-bat">攻/);assert.match(bottom,/at-bat"><div class="t">H<span class="sb-bat">攻/);
+ assert.match(top,/at-bat" data-team="A"><div class="t">A<span class="sb-bat">攻/);assert.match(bottom,/at-bat" data-team="H"><div class="t">H<span class="sb-bat">攻/);
+ assert.match(top,/class="sb-team" data-team="H"><div class="t">H<\/div>/);assert.equal(f.eval("scoreboardTeams({half:'away',bat_team:'<b>',bat_score:0,fld_team:'H',fld_score:0})").includes('data-team="&lt;b&gt;"'),true,'team name escaped in attribute');
 });
 test('player notes show season lines and head-to-head counts only for custom evaluations',()=>{
  const f=fixture();
